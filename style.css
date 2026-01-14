@@ -1,279 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&display=swap');
+
 body {
-    font-family: 'BIZ UD Gothic', sans-serif;
-    text-align: center;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 0;
-}
-
-header {
-    background-color: #333;
-    color: white;
-    padding: 1rem;
-}
-
-.tab-bar {
+    font-family: 'BIZ UDGothic', sans-serif;
     display: flex;
     justify-content: center;
-    margin-top: 1rem;
-}
-
-.tab-button {
-    background-color: #555;
+    align-items: center;
+    min-height: 100vh;
+    background: radial-gradient(circle at center, #2c3e50 0%, #000 100%);
+    margin: 0;
     color: white;
-    border: none;
-    padding: 10px 20px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s;
 }
 
-.tab-button:hover, .tab-button.active {
-    background-color: #007bff;
+.app-container {
+    text-align: center;
+    width: 95%;
+    max-width: 600px;
 }
 
-.content {
-    display: none;
-    padding: 2rem;
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    background: #000;
+    border-radius: 30px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 20px;
 }
 
-.content.active {
+video {
+    width: 100%;
     display: block;
 }
 
-.timer-display {
-    position: relative;
-    width: 250px;
-    height: 250px;
-    margin: 2rem auto;
-}
-
-#timer-circle {
-    /* HTMLでwidthとheightを設定しているため、CSSでは不要 */
-}
-
-#time-text {
+#stopwatch-display {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 36px;
-    font-weight: bold;
+    top: 20px;
+    left: 20px;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: black;
+    text-shadow: 1.5px 1.5px 0 #fff, -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    padding: 10px 20px;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* グラスパネル */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 25px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.label {
+    font-size: 0.65rem;
+    letter-spacing: 0.2rem;
+    color: rgba(255, 255, 255, 0.4);
+    margin-bottom: 8px;
+}
+
+.button-row {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* アイコンボタンの基本スタイル */
+button {
+    width: 54px;
+    height: 54px;
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-#time-text input {
-    width: 50px;
-    font-size: 36px;
-    font-weight: bold;
-    text-align: center;
-    border: none;
-    background: transparent;
-    padding: 0;
-}
-
-#time-text input:focus {
-    outline: 2px solid #007bff;
-}
-
-/* ナンバー入力欄の矢印（スピナーボタン）を非表示にする */
-#time-text input::-webkit-outer-spin-button,
-#time-text input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-#time-text input[type=number] {
-  -moz-appearance: textfield;
-}
-
-.timer-controls button {
-    font-size: 18px;
-    padding: 10px 20px;
-    margin: 5px;
-    cursor: pointer;
-    background-color: white;
-    border-radius: 5px;
-}
-
-/* スタート/ストップボタンのスタイル */
-#startStopButton {
-    border: 2px solid #ff7f00; /* オレンジの枠線 */
-    color: #ff7f00; /* 文字色も枠線と同じ色に */
-}
-
-#startStopButton:hover {
-    background-color: #fff3e6; /* ホバー時の色 */
-}
-
-/* 交換中ボタンのスタイル */
-#exchangeButton {
-    border: 2px solid #28a745; /* 緑の枠線 */
-    color: #28a745;
-}
-
-#exchangeButton:hover {
-    background-color: #e6f5e9;
-}
-
-/* リセットボタンのスタイル */
-#resetButton {
-    border: 2px solid #dc3545; /* 赤の枠線 */
-    color: #dc3545;
-}
-
-#resetButton:hover {
-    background-color: #fcebeb;
-}
-
-.lap-summary-container {
-    display: flex;
-    justify-content: center;
-    gap: 50px;
-    margin-top: 20px;
-}
-
-#lap-times {
-    list-style: none;
-    padding: 0;
-    font-size: 18px;
-    text-align: left;
-    max-width: 300px;
-}
-
-#lap-times li {
-    background-color: #e9ecef;
-    border-radius: 5px;
-    padding: 10px;
-    margin-bottom: 5px;
-    display: flex;
-    justify-content: space-between;
-    width: 250px;
-}
-
-#total-times {
-    font-size: 18px;
-    text-align: left;
-}
-
-#total-times div {
-    margin-bottom: 10px;
-    font-weight: bold;
-}
-
-/* ...（これまでのCSSコード）... */
-
-#score-section {
-    max-width: 600px;
-    margin: 0 auto;
-    text-align: left;
-}
-
-.score-form {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.score-item {
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 15px;
-    margin-bottom: 15px;
-}
-
-.score-item h3 {
-    margin-top: 0;
-}
-
-.score-item label {
-    display: inline-block;
-    margin-right: 15px;
-}
-
-#precision-tokens {
-    width: 50px;
-    text-align: center;
-    font-size: 16px;
-}
-
-.total-score {
-    text-align: right;
-    margin-top: 20px;
-    font-size: 24px;
-    font-weight: bold;
-}
-
-/* ...（これまでのCSSコード）... */
-.score-form {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.score-item {
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 15px;
-    margin-bottom: 15px;
-}
-
-.score-item h3 {
-    margin-top: 0;
-}
-
-.score-item label {
-    display: inline-block;
-    margin-right: 15px;
-}
-
-.score-option {
-    margin: 10px 0;
-}
-
-#precision-tokens {
-    width: 50px;
-    text-align: center;
-    font-size: 16px;
-}
-
-.total-score {
-    text-align: right;
-    margin-top: 20px;
-    font-size: 24px;
-    font-weight: bold;
-}
-
-/* ...（これまでのCSSコード）... */
-
-.button-group {
-    display: flex;
-    gap: 5px;
-    flex-wrap: wrap;
-    margin-top: 5px;
-}
-
-.score-btn {
-    padding: 8px 12px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    background-color: #f8f9fa;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.2s, border-color 0.2s;
-}
-
-.score-btn:hover {
-    background-color: #e2e6ea;
-}
-
-/* 選択されたボタンのスタイル */
-.score-btn.selected {
-    background-color: #007bff;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
     color: white;
-    border-color: #007bff;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ...（その他のCSSコード）... */
+button i {
+    width: 24px;
+    height: 24px;
+}
+
+button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+button:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+button:disabled {
+    opacity: 0.1;
+    cursor: not-allowed;
+}
+
+/* 特定のボタンのアクセント */
+#timerStartBtn { color: #2ecc71; border-color: rgba(46, 204, 113, 0.4); }
+#recordStartBtn { color: #e74c3c; border-color: rgba(231, 76, 60, 0.4); }
+#photoBtn { color: #3498db; border-color: rgba(52, 152, 219, 0.4); }
+
+.download-link-style {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 12px 25px;
+    background: rgba(46, 204, 113, 0.2);
+    border: 1px solid #2ecc71;
+    color: #2ecc71;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
