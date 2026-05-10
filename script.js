@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const m15ScoreDisplay = document.getElementById('m15-score');
     
     const totalScoreDisplay = document.getElementById('total-score-value');
-    const scoreHeaderValue = document.getElementById('score-header-value');
     const scoreHistoryList = document.getElementById('score-history-list');
 
     const scoreForm = document.querySelector('.score-form');
@@ -216,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
         totalScore += m15Score;
         
         totalScoreDisplay.textContent = totalScore;
-        scoreHeaderValue.textContent = ` (${totalScore}点)`;
     }
 
     // ボタンのクリックイベントをまとめて処理
