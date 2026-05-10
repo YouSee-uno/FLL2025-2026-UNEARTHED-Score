@@ -26,7 +26,7 @@
                 <div id="time-text">
                     <input type="number" id="minutes-input" value="2" min="0" max="99">
                     :
-                    <input type="number" id="seconds-input" value="30" min="0" max="59">
+                    <input type="number" id="seconds-input" value="30" min="0" max="59">.<span id="centiseconds-display">00</span>
                 </div>
             </div>
             <div class="timer-controls">
@@ -35,12 +35,20 @@
                 <button id="resetButton">リセット</button>
             </div>
             <div class="lap-summary-container">
+                <table id="total-times-table">
+                    <tbody>
+                        <tr class="total-run-row">
+                            <th>Run 合計</th>
+                            <td><span id="total-run-time">0.00</span> 秒</td>
+                        </tr>
+                        <tr class="total-exchange-row">
+                            <th>交換 合計</th>
+                            <td><span id="total-exchange-time">0.00</span> 秒</td>
+                        </tr>
+                    </tbody>
+                </table>
                 <ul id="lap-times">
-                    </ul>
-                <div id="total-times">
-                    <div>Run 合計: <span id="total-run-time">0</span>秒</div>
-                    <div>交換 合計: <span id="total-exchange-time">0</span>秒</div>
-                </div>
+                </ul>
             </div>
         </section>
 

@@ -16,12 +16,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const minutesInput = document.getElementById('minutes-input');
     const secondsInput = document.getElementById('seconds-input');
+    const timeText = document.getElementById('time-text');
     const canvas = document.getElementById('timer-circle');
     const ctx = canvas.getContext('2d');
     const lapTimesList = document.getElementById('lap-times');
 
     const totalRunTimeDisplay = document.getElementById('total-run-time');
     const totalExchangeTimeDisplay = document.getElementById('total-exchange-time');
+    const centisecondsDisplay = document.getElementById('centiseconds-display');
 
     // スコア集計のDOM要素
     const sizeBonusScoreDisplay = document.getElementById('size-bonus-score');
@@ -57,13 +59,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let savedScores = [];
     let isRunning = false;
     let timerInterval;
-    let totalTime = 150;
+    let totalTime = 15000;
     let timeLeft = totalTime;
     let runCount = 0;
     let exchangeCount = 0;
     let lastLapTime = totalTime;
     let totalRunTime = 0;
     let totalExchangeTime = 0;
+    let timerStartStamp = null;
+    let timerLeftAtStart = null;
 
     // --- スコア計算機能 ---
     function getSelectedValue(target) {
@@ -262,37 +266,78 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- タイマー機能 ---
-    function updateInputs(seconds) {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        minutesInput.value = String(minutes).padStart(2, '0');
-        secondsInput.value = String(remainingSeconds).padStart(2, '0');
+    function updateInputs(cs) {
+        const totalSec = Math.floor(cs / 100);
+        const mins = Math.floor(totalSec / 60);
+        const secs = totalSec % 60;
+        const centi = cs % 100;
+        minutesInput.value = String(mins).padStart(2, '0');
+        secondsInput.value = String(secs).padStart(2, '0');
+        centisecondsDisplay.textContent = String(centi).padStart(2, '0');
     }
 
     function drawTimerCircle(progress) {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const radius = canvas.width / 2 - 10;
+        // Reduce radius to leave room for the neon glow (prevent clipping at canvas edge)
+        const radius = canvas.width / 2 - 20;
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // Determine glow color
+        let currentColor = '#3b82f6';
+        if (progress > 0 && timeLeft <= 3000 && timeLeft > 0) {
+            const blinkOn = Math.floor(Date.now() / 500) % 2 === 0;
+            currentColor = blinkOn ? '#ef4444' : '#fca5a5'; // normal red / light red
+        }
+        // Sync text color with ring color
+        timeText.style.color = currentColor;
+        minutesInput.style.color = currentColor;
+        secondsInput.style.color = currentColor;
+        centisecondsDisplay.style.color = currentColor;
+        
+        timeText.style.textShadow = 'none';
+        minutesInput.style.textShadow = 'none';
+        secondsInput.style.textShadow = 'none';
+
+        // Track ring (background)
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = '#ddd';
-        ctx.lineWidth = 20;
+        ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+        ctx.lineWidth = 18;
+        ctx.lineCap = 'butt';
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
         ctx.stroke();
 
-        ctx.beginPath();
-        const endAngle = -0.5 * Math.PI + (2 * Math.PI * progress);
-        ctx.arc(centerX, centerY, radius, -0.5 * Math.PI, endAngle);
-        ctx.strokeStyle = '#87ceeb';
-        ctx.lineWidth = 20;
-        ctx.lineCap = 'round';
-        ctx.stroke();
+        // Progress arc
+        if (progress > 0) {
+            ctx.beginPath();
+            const endAngle = -0.5 * Math.PI + (2 * Math.PI * progress);
+            ctx.arc(centerX, centerY, radius, -0.5 * Math.PI, endAngle);
+            
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 18;
+            ctx.lineCap = 'butt';
+            
+            // Add neon glow effect to the arc
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = currentColor;
+            
+            ctx.stroke();
+            
+            // Reset shadow
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+        }
     }
 
     function updateTimer() {
+        const elapsed = Date.now() - timerStartStamp;
+        const elapsedCs = Math.floor(elapsed / 10);
+        timeLeft = timerLeftAtStart - elapsedCs;
         if (timeLeft <= 0) {
+            timeLeft = 0;
             clearInterval(timerInterval);
             isRunning = false;
             updateInputs(0);
@@ -303,15 +348,19 @@ document.addEventListener('DOMContentLoaded', () => {
             exchangeButton.disabled = true;
             return;
         }
-        timeLeft--;
         const progress = timeLeft / totalTime;
         updateInputs(timeLeft);
         drawTimerCircle(progress);
     }
 
-    function addLapTime(label, time) {
+    function addLapTime(label, timeCs, isRun) {
         const li = document.createElement('li');
-        li.innerHTML = `<span>${label}</span><span>${time}秒</span>`;
+        li.innerHTML = `<span>${label}</span><span>${(timeCs / 100).toFixed(2)}秒</span>`;
+        if (isRun) {
+            li.classList.add('lap-run');
+        } else {
+            li.classList.add('lap-exchange');
+        }
         lapTimesList.prepend(li);
     }
 
@@ -321,13 +370,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (timeLeft === totalTime) {
                 const minutes = parseInt(minutesInput.value, 10) || 0;
                 const seconds = parseInt(secondsInput.value, 10) || 0;
-                totalTime = minutes * 60 + seconds;
+                totalTime = (minutes * 60 + seconds) * 100;
                 timeLeft = totalTime;
                 lastLapTime = totalTime;
             }
 
             if (timeLeft > 0) {
-                timerInterval = setInterval(updateTimer, 1000);
+                timerStartStamp = Date.now();
+                timerLeftAtStart = timeLeft;
+                timerInterval = setInterval(updateTimer, 10);
                 isRunning = true;
                 startStopButton.textContent = 'ストップ';
                 exchangeButton.disabled = false;
@@ -348,15 +399,15 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (exchangeButton.textContent === '交換') {
                 runCount++;
-                addLapTime(`${runCount} Run`, timeDiff);
+                addLapTime(`${runCount} Run`, timeDiff, true);
                 totalRunTime += timeDiff;
-                totalRunTimeDisplay.textContent = totalRunTime;
+                totalRunTimeDisplay.textContent = (totalRunTime / 100).toFixed(2);
                 exchangeButton.textContent = '走行';
             } else {
                 exchangeCount++;
-                addLapTime(`交換 ${exchangeCount}回目`, timeDiff);
+                addLapTime(`交換 ${exchangeCount}回目`, timeDiff, false);
                 totalExchangeTime += timeDiff;
-                totalExchangeTimeDisplay.textContent = totalExchangeTime;
+                totalExchangeTimeDisplay.textContent = (totalExchangeTime / 100).toFixed(2);
                 exchangeButton.textContent = '交換';
             }
         }
@@ -365,11 +416,11 @@ document.addEventListener('DOMContentLoaded', () => {
     resetButton.addEventListener('click', () => {
         clearInterval(timerInterval);
         isRunning = false;
-        totalTime = 150;
+        totalTime = 15000;
         timeLeft = totalTime;
         runCount = 0;
         exchangeCount = 0;
-        lastLapTime = 150;
+        lastLapTime = 15000;
         totalRunTime = 0;
         totalExchangeTime = 0;
         updateInputs(timeLeft);
@@ -380,8 +431,8 @@ document.addEventListener('DOMContentLoaded', () => {
         exchangeButton.textContent = '交換';
         
         lapTimesList.innerHTML = '';
-        totalRunTimeDisplay.textContent = '0';
-        totalExchangeTimeDisplay.textContent = '0';
+        totalRunTimeDisplay.textContent = '0.00';
+        totalExchangeTimeDisplay.textContent = '0.00';
 
         resetScoreButtons();
         calculateScore();
