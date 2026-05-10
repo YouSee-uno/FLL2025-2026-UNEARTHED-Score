@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // DOM要素の取得
     const timerTab = document.getElementById('timerTab');
     const scoreTab = document.getElementById('scoreTab');
@@ -25,36 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalExchangeTimeDisplay = document.getElementById('total-exchange-time');
     const centisecondsDisplay = document.getElementById('centiseconds-display');
 
-    // スコア集計のDOM要素
-    const sizeBonusScoreDisplay = document.getElementById('size-bonus-score');
-    const precisionTokensScoreDisplay = document.getElementById('precision-tokens-score');
-    const m01ScoreDisplay = document.getElementById('m01-score');
-    const m02ScoreDisplay = document.getElementById('m02-score');
-    const m03ScoreDisplay = document.getElementById('m03-score');
-    const m04ScoreDisplay = document.getElementById('m04-score');
-    const m05ScoreDisplay = document.getElementById('m05-score');
-    const m06ScoreDisplay = document.getElementById('m06-score');
-    const m07ScoreDisplay = document.getElementById('m07-score');
-    const m08ScoreDisplay = document.getElementById('m08-score');
-    const m09ScoreDisplay = document.getElementById('m09-score');
-    const m10ScoreDisplay = document.getElementById('m10-score');
-    const m11ScoreDisplay = document.getElementById('m11-score');
-    const m12ScoreDisplay = document.getElementById('m12-score');
-    const m13ScoreDisplay = document.getElementById('m13-score');
-    const m14ScoreDisplay = document.getElementById('m14-score');
-    const m15ScoreDisplay = document.getElementById('m15-score');
-    
     const totalScoreDisplay = document.getElementById('total-score-value');
     const scoreHistoryList = document.getElementById('score-history-list');
 
-    const scoreForm = document.querySelector('.score-form');
-    
-    const scoreLabels = [
-        '大きさ点検ボーナス', '精密トークン', 'M01 表面清掃', 'M02 地図の露出', 'M03 鉱抗の探査', 'M04 慎重な回収',
-        'M05 誰が住んでいた？', 'M06 鍛治場', 'M07 力仕事', 'M08 サイロ', 'M09 何を売っていた？', 'M10 はかり',
-        'M11 港の遺物', 'M12 船の救出', 'M13 像の復元', 'M14 フォーラム', 'M15 発見現場のマーキング'
-    ];
+    const missionsContainer = document.getElementById('missions-container');
 
+    let missions = [];
     let savedScores = [];
     let isRunning = false;
     let timerInterval;
@@ -68,170 +44,176 @@ document.addEventListener('DOMContentLoaded', () => {
     let timerStartStamp = null;
     let timerLeftAtStart = null;
 
-    // --- スコア計算機能 ---
-    function getSelectedValue(target) {
-        const selectedButton = document.querySelector(`.button-group[data-target="${target}"] .score-btn.selected`);
-        return selectedButton ? selectedButton.dataset.value : null;
+    // --- ミッションデータの読み込みとパース ---
+    async function loadMissions() {
+        try {
+            const response = await fetch('missions.md');
+            const text = await response.text();
+            const parsedMissions = [];
+            let currentMission = null;
+            let currentOption = null;
+
+            const lines = text.split('\n');
+            lines.forEach((line, index) => {
+                const h1Match = line.match(/^#\s+\[(.*?)\]\s+(.*)/);
+                if (h1Match) {
+                    currentMission = {
+                        id: `m${parsedMissions.length}`,
+                        ribbon: h1Match[1],
+                        title: h1Match[2],
+                        description: '',
+                        options: []
+                    };
+                    parsedMissions.push(currentMission);
+                    currentOption = null;
+                    return;
+                }
+
+                const optionMatch = line.match(/^\-\s+option:\s*(.*)/);
+                if (optionMatch) {
+                    currentOption = {
+                        label: optionMatch[1].trim(),
+                        values: [],
+                        defaultValue: null
+                    };
+                    currentMission.options.push(currentOption);
+                    return;
+                }
+
+                const valueMatch = line.match(/^\s+\-\s+(.*?):\s*(.*)/);
+                if (valueMatch && currentOption) {
+                    const key = valueMatch[1].trim();
+                    const val = valueMatch[2].trim();
+                    if (key === 'default') {
+                        currentOption.defaultValue = val;
+                    } else {
+                        currentOption.values.push({ label: key, points: parseInt(val, 10) });
+                    }
+                    return;
+                }
+
+                if (currentMission && !currentOption && line.trim() && !line.startsWith('#') && !line.startsWith('-')) {
+                    currentMission.description += line.trim() + ' ';
+                }
+            });
+            return parsedMissions;
+        } catch (error) {
+            console.error('Failed to load missions:', error);
+            return [];
+        }
+    }
+
+    // --- ミッションの描画 ---
+    function renderMissions() {
+        missionsContainer.innerHTML = '';
+        missions.forEach((mission, mIndex) => {
+            const missionEl = document.createElement('div');
+            missionEl.className = 'score-item';
+            missionEl.innerHTML = `
+                <h3 class="mission-header">
+                    <span class="ribbon">${mission.ribbon}</span>
+                    <span class="mission-title">${mission.title}</span>
+                </h3>
+                ${mission.description ? `<p>${mission.description}</p>` : ''}
+                <div class="mission-options"></div>
+                <p>${mission.ribbon} 合計得点: <span id="${mission.id}-score" class="mission-total-score">0</span>点</p>
+            `;
+
+            const optionsContainer = missionEl.querySelector('.mission-options');
+            mission.options.forEach((option, oIndex) => {
+                const optionEl = document.createElement('div');
+                optionEl.className = 'score-option';
+                if (option.label) {
+                    const labelEl = document.createElement('p');
+                    labelEl.textContent = option.label;
+                    optionEl.appendChild(labelEl);
+                }
+
+                const buttonGroup = document.createElement('div');
+                buttonGroup.className = 'button-group';
+                buttonGroup.dataset.missionId = mission.id;
+                buttonGroup.dataset.optionIndex = oIndex;
+
+                option.values.forEach(val => {
+                    const btn = document.createElement('button');
+                    btn.className = 'score-btn';
+                    btn.dataset.value = val.points;
+                    btn.dataset.label = val.label;
+                    btn.textContent = val.label.includes('点') ? val.label : `${val.label}`;
+                    
+                    // Set default if specified
+                    if (option.defaultValue === val.label || (!option.defaultValue && val.points === 0 && option.values.length > 1 && oIndex > 0)) {
+                        // Special case: if no default and points 0, but usually we want the first or specific one.
+                        // Actually, let's trust the 'default' key or just first one.
+                    }
+                    
+                    buttonGroup.appendChild(btn);
+                });
+
+                optionEl.appendChild(buttonGroup);
+                optionsContainer.appendChild(optionEl);
+            });
+
+            missionsContainer.appendChild(missionEl);
+        });
+
+        // Add event listeners to newly created buttons
+        document.querySelectorAll('.score-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const group = btn.closest('.button-group');
+                group.querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                calculateScore();
+            });
+        });
+    }
+
+    function resetScoreButtons() {
+        missions.forEach(mission => {
+            mission.options.forEach((option, oIndex) => {
+                const group = document.querySelector(`.button-group[data-mission-id="${mission.id}"][data-option-index="${oIndex}"]`);
+                if (!group) return;
+                
+                const buttons = group.querySelectorAll('.score-btn');
+                buttons.forEach(b => b.classList.remove('selected'));
+                
+                let defaultBtn = null;
+                if (option.defaultValue) {
+                    defaultBtn = Array.from(buttons).find(b => b.dataset.label === option.defaultValue);
+                }
+                
+                if (!defaultBtn) {
+                    // Fallback: first button with 0 points, or just the first button
+                    defaultBtn = Array.from(buttons).find(b => parseInt(b.dataset.value) === 0) || buttons[0];
+                }
+                
+                if (defaultBtn) defaultBtn.classList.add('selected');
+            });
+        });
+        calculateScore();
     }
 
     function calculateScore() {
-        let sizeBonusScore = 0;
-        let precisionTokensScore = 0;
-        let m01Score = 0;
-        let m02Score = 0;
-        let m03Score = 0;
-        let m04Score = 0;
-        let m05Score = 0;
-        let m06Score = 0;
-        let m07Score = 0;
-        let m08Score = 0;
-        let m09Score = 0;
-        let m10Score = 0;
-        let m11Score = 0;
-        let m12Score = 0;
-        let m13Score = 0;
-        let m14Score = 0;
-        let m15Score = 0;
         let totalScore = 0;
-
-        const sizeBonusValue = getSelectedValue('size-bonus');
-        if (sizeBonusValue === 'true') {
-            sizeBonusScore = 20;
-        }
-        sizeBonusScoreDisplay.textContent = sizeBonusScore;
-        totalScore += sizeBonusScore;
-
-        const tokenCount = parseInt(getSelectedValue('precision-tokens'), 10) || 0;
-        switch (tokenCount) {
-            case 6:
-            case 5:
-                precisionTokensScore = 50;
-                break;
-            case 4:
-                precisionTokensScore = 35;
-                break;
-            case 3:
-                precisionTokensScore = 25;
-                break;
-            case 2:
-                precisionTokensScore = 15;
-                break;
-            case 1:
-                precisionTokensScore = 10;
-                break;
-            default:
-                precisionTokensScore = 0;
-                break;
-        }
-        precisionTokensScoreDisplay.textContent = precisionTokensScore;
-        totalScore += precisionTokensScore;
-
-        const m01SoilScore = parseInt(getSelectedValue('m01-soil'), 10) || 0;
-        const m01BrushScore = parseInt(getSelectedValue('m01-brush'), 10) || 0;
-        m01Score = m01SoilScore + m01BrushScore;
-        m01ScoreDisplay.textContent = m01Score;
-        totalScore += m01Score;
-
-        const m02TopsoilScore = parseInt(getSelectedValue('m02-topsoil'), 10) || 0;
-        m02Score = m02TopsoilScore;
-        m02ScoreDisplay.textContent = m02Score;
-        totalScore += m02Score;
-        
-        const m03YourCartScore = parseInt(getSelectedValue('m03-your-cart'), 10) || 0;
-        const m03OpponentCartScore = parseInt(getSelectedValue('m03-opponent-cart'), 10) || 0;
-        m03Score = m03YourCartScore + m03OpponentCartScore;
-        m03ScoreDisplay.textContent = m03Score;
-        totalScore += m03Score;
-
-        const m04MineralsScore = parseInt(getSelectedValue('m04-minerals'), 10) || 0;
-        const m04PillarsScore = parseInt(getSelectedValue('m04-pillars'), 10) || 0;
-        m04Score = m04MineralsScore + m04PillarsScore;
-        m04ScoreDisplay.textContent = m04Score;
-        totalScore += m04Score;
-
-        const m05FloorScore = parseInt(getSelectedValue('m05-floor'), 10) || 0;
-        m05Score = m05FloorScore;
-        m05ScoreDisplay.textContent = m05Score;
-        totalScore += m05Score;
-
-        const m06OreScore = parseInt(getSelectedValue('m06-ore'), 10) || 0;
-        m06Score = m06OreScore;
-        m06ScoreDisplay.textContent = m06Score;
-        totalScore += m06Score;
-
-        const m07MortarScore = parseInt(getSelectedValue('m07-mortar'), 10) || 0;
-        m07Score = m07MortarScore;
-        m07ScoreDisplay.textContent = m07Score;
-        totalScore += m07Score;
-        
-        const m08FoodScore = parseInt(getSelectedValue('m08-food'), 10) || 0;
-        m08Score = m08FoodScore;
-        m08ScoreDisplay.textContent = m08Score;
-        totalScore += m08Score;
-
-        const m09RoofScore = parseInt(getSelectedValue('m09-roof'), 10) || 0;
-        const m09GoodsScore = parseInt(getSelectedValue('m09-goods'), 10) || 0;
-        m09Score = m09RoofScore + m09GoodsScore;
-        m09ScoreDisplay.textContent = m09Score;
-        totalScore += m09Score;
-
-        const m10ScaleTiltScore = parseInt(getSelectedValue('m10-scale-tilt'), 10) || 0;
-        const m10ScaleDishScore = parseInt(getSelectedValue('m10-scale-dish'), 10) || 0;
-        m10Score = m10ScaleTiltScore + m10ScaleDishScore;
-        m10ScoreDisplay.textContent = m10Score;
-        totalScore += m10Score;
-
-        const m11RelicLiftScore = parseInt(getSelectedValue('m11-relic-lift'), 10) || 0;
-        const m11FlagDownScore = parseInt(getSelectedValue('m11-flag-down'), 10) || 0;
-        m11Score = m11RelicLiftScore + m11FlagDownScore;
-        m11ScoreDisplay.textContent = m11Score;
-        totalScore += m11Score;
-
-        const m12SandScore = parseInt(getSelectedValue('m12-sand'), 10) || 0;
-        const m12BoatScore = parseInt(getSelectedValue('m12-boat'), 10) || 0;
-        m12Score = m12SandScore + m12BoatScore;
-        m12ScoreDisplay.textContent = m12Score;
-        totalScore += m12Score;
-
-        const m13StatueScore = parseInt(getSelectedValue('m13-statue'), 10) || 0;
-        m13Score = m13StatueScore;
-        m13ScoreDisplay.textContent = m13Score;
-        totalScore += m13Score;
-
-        const m14BrushScore = parseInt(getSelectedValue('m14-brush'), 10) || 0;
-        const m14CartScore = parseInt(getSelectedValue('m14-cart'), 10) || 0;
-        const m14DishScore = parseInt(getSelectedValue('m14-dish'), 10) || 0;
-        const m14TopsoilScore = parseInt(getSelectedValue('m14-topsoil'), 10) || 0;
-        const m14RelicScore = parseInt(getSelectedValue('m14-relic'), 10) || 0;
-        const m14OreScore = parseInt(getSelectedValue('m14-ore'), 10) || 0;
-        const m14MortarScore = parseInt(getSelectedValue('m14-mortar'), 10) || 0;
-        m14Score = m14BrushScore + m14CartScore + m14DishScore + m14TopsoilScore + m14RelicScore + m14OreScore + m14MortarScore;
-        m14ScoreDisplay.textContent = m14Score;
-        totalScore += m14Score;
-
-        const m15FlagScore = parseInt(getSelectedValue('m15-flag'), 10) || 0;
-        m15Score = m15FlagScore;
-        m15ScoreDisplay.textContent = m15Score;
-        totalScore += m15Score;
-        
+        missions.forEach(mission => {
+            let missionScore = 0;
+            mission.options.forEach((option, oIndex) => {
+                const selectedBtn = document.querySelector(`.button-group[data-mission-id="${mission.id}"][data-option-index="${oIndex}"] .score-btn.selected`);
+                if (selectedBtn) {
+                    missionScore += parseInt(selectedBtn.dataset.value, 10);
+                }
+            });
+            const scoreDisplay = document.getElementById(`${mission.id}-score`);
+            if (scoreDisplay) scoreDisplay.textContent = missionScore;
+            totalScore += missionScore;
+        });
         totalScoreDisplay.textContent = totalScore;
     }
 
-    // ボタンのクリックイベントをまとめて処理
-    scoreForm.addEventListener('click', (e) => {
-        const button = e.target.closest('.score-btn');
-        if (!button) return;
-
-        const buttonGroup = button.closest('.button-group');
-        if (!buttonGroup) return;
-
-        buttonGroup.querySelectorAll('.score-btn').forEach(btn => {
-            btn.classList.remove('selected');
-        });
-
-        button.classList.add('selected');
-        calculateScore();
-    });
+    // --- 初期化 ---
+    missions = await loadMissions();
+    renderMissions();
+    resetScoreButtons();
 
     // --- タブ切り替え機能 ---
     timerTab.addEventListener('click', () => {
@@ -277,56 +259,37 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawTimerCircle(progress) {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        // Reduce radius to leave room for the neon glow (prevent clipping at canvas edge)
         const radius = canvas.width / 2 - 20;
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Determine glow color
         let currentColor = '#3b82f6';
         if (progress > 0 && timeLeft <= 3000 && timeLeft > 0) {
             const blinkOn = Math.floor(Date.now() / 500) % 2 === 0;
-            currentColor = blinkOn ? '#ef4444' : '#fca5a5'; // normal red / light red
+            currentColor = blinkOn ? '#ef4444' : '#fca5a5';
         }
-        // Sync text color with ring color
         timeText.style.color = currentColor;
         minutesInput.style.color = currentColor;
         secondsInput.style.color = currentColor;
         centisecondsDisplay.style.color = currentColor;
         
-        timeText.style.textShadow = 'none';
-        minutesInput.style.textShadow = 'none';
-        secondsInput.style.textShadow = 'none';
-
-        // Track ring (background)
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
         ctx.strokeStyle = 'rgba(0,0,0,0.06)';
         ctx.lineWidth = 18;
-        ctx.lineCap = 'butt';
-        ctx.shadowBlur = 0;
-        ctx.shadowColor = 'transparent';
         ctx.stroke();
 
-        // Progress arc
         if (progress > 0) {
             ctx.beginPath();
             const endAngle = -0.5 * Math.PI + (2 * Math.PI * progress);
             ctx.arc(centerX, centerY, radius, -0.5 * Math.PI, endAngle);
-            
             ctx.strokeStyle = currentColor;
             ctx.lineWidth = 18;
             ctx.lineCap = 'butt';
-            
-            // Add neon glow effect to the arc
             ctx.shadowBlur = 15;
             ctx.shadowColor = currentColor;
-            
             ctx.stroke();
-            
-            // Reset shadow
             ctx.shadowBlur = 0;
-            ctx.shadowColor = 'transparent';
         }
     }
 
@@ -354,15 +317,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function addLapTime(label, timeCs, isRun) {
         const li = document.createElement('li');
         li.innerHTML = `<span>${label}</span><span>${(timeCs / 100).toFixed(2)}秒</span>`;
-        if (isRun) {
-            li.classList.add('lap-run');
-        } else {
-            li.classList.add('lap-exchange');
-        }
+        if (isRun) li.classList.add('lap-run');
+        else li.classList.add('lap-exchange');
         lapTimesList.prepend(li);
     }
 
-    // --- ボタンイベント ---
     startStopButton.addEventListener('click', () => {
         if (!isRunning) {
             if (timeLeft === totalTime) {
@@ -427,18 +386,14 @@ document.addEventListener('DOMContentLoaded', () => {
         startStopButton.disabled = false;
         exchangeButton.disabled = true;
         exchangeButton.textContent = '交換';
-        
         lapTimesList.innerHTML = '';
         totalRunTimeDisplay.textContent = '0.00';
         totalExchangeTimeDisplay.textContent = '0.00';
-
         resetScoreButtons();
-        calculateScore();
     });
 
     scoreResetButton.addEventListener('click', () => {
         resetScoreButtons();
-        calculateScore();
     });
 
     saveScoreButton.addEventListener('click', () => {
@@ -446,9 +401,10 @@ document.addEventListener('DOMContentLoaded', () => {
             '保存日時': new Date().toLocaleString(),
             '合計得点': totalScoreDisplay.textContent
         };
-        scoreLabels.forEach(label => {
-            const scoreSpan = document.getElementById(`${label.split(' ')[0].toLowerCase()}-score`);
-            scoreData[label] = scoreSpan ? scoreSpan.textContent.replace('点', '').trim() : '0';
+        missions.forEach(mission => {
+            const label = `${mission.ribbon} ${mission.title}`;
+            const scoreSpan = document.getElementById(`${mission.id}-score`);
+            scoreData[label] = scoreSpan ? scoreSpan.textContent : '0';
         });
 
         savedScores.push(scoreData);
@@ -462,13 +418,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let csvContent = '\uFEFF';
-        
         const headers = ['ミッション名'].concat(savedScores.map((_, index) => `記録 ${index + 1}`));
         csvContent += headers.join(',') + '\n';
         
-        const allLabels = ['合計得点', '保存日時'].concat(scoreLabels);
+        const missionLabels = missions.map(m => `${m.ribbon} ${m.title}`);
+        const allLabels = ['合計得点', '保存日時'].concat(missionLabels);
         allLabels.forEach(label => {
-            const row = savedScores.map(score => score[label] ? score[label].replace(',', '') : '0');
+            const row = savedScores.map(score => score[label] ? `"${score[label]}"` : '0');
             csvContent += `"${label}",` + row.join(',') + '\n';
         });
 
@@ -477,20 +433,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
         link.setAttribute('download', `FLL_scores_${new Date().toISOString().slice(0, 10)}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
     });
 
     function updateHistoryList() {
         scoreHistoryList.innerHTML = '';
-        
-        if (savedScores.length === 0) {
-            return;
-        }
+        if (savedScores.length === 0) return;
 
-        const missionHeaders = ['合計得点', '保存日時'].concat(scoreLabels);
+        const missionLabels = missions.map(m => `${m.ribbon} ${m.title}`);
+        const missionHeaders = ['合計得点', '保存日時'].concat(missionLabels);
         
         const headerRow = document.createElement('li');
         headerRow.classList.add('history-table-row', 'history-table-header');
@@ -515,46 +466,6 @@ document.addEventListener('DOMContentLoaded', () => {
             scoreHistoryList.appendChild(row);
         });
     }
-
-    function resetScoreButtons() {
-        document.querySelectorAll('.score-btn').forEach(btn => {
-            btn.classList.remove('selected');
-        });
-
-        document.querySelector('.button-group[data-target="size-bonus"] .score-btn[data-value="true"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="precision-tokens"] .score-btn[data-value="6"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m01-soil"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m01-brush"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m02-topsoil"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m03-your-cart"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m03-opponent-cart"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m04-minerals"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m04-pillars"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m05-floor"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m06-ore"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m07-mortar"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m08-food"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m09-roof"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m09-goods"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m10-scale-tilt"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m10-scale-dish"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m11-relic-lift"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m11-flag-down"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m12-sand"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m12-boat"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m13-statue"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m14-brush"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m14-cart"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m14-dish"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m14-topsoil"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m14-relic"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m14-ore"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m14-mortar"] .score-btn[data-value="0"]').classList.add('selected');
-        document.querySelector('.button-group[data-target="m15-flag"] .score-btn[data-value="0"]').classList.add('selected');
-    }
-
-    resetScoreButtons();
-    calculateScore();
 
     updateInputs(timeLeft);
     drawTimerCircle(1);
