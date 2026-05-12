@@ -37,10 +37,14 @@
     padding: 0;
 }
 
+html {
+    background: var(--bg-main);
+}
+
 body {
     font-family: 'BIZ UDGothic', 'BIZ UD Gothic', sans-serif;
     text-align: center;
-    background: var(--bg-main);
+    background: transparent;
     /* Subtle decorative gradient blobs */
     background-image:
         radial-gradient(ellipse 600px 600px at 10% 20%, rgba(59, 130, 246, 0.08), transparent),
@@ -50,6 +54,27 @@ body {
     color: var(--text-primary);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* --- Blurred Background Logo --- */
+body::before {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 100vw;
+    height: 100vh;
+    background-image: url('fll_logo.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 60%; /* Large watermark style */
+    filter: blur(12px);
+    opacity: 0.2; /* Increased for better visibility */
+    transform: translate(-50%, -50%) scale(1.1); /* Scale up slightly to avoid blurred edge artifacts */
+    z-index: -10; /* Lowered further to ensure it's behind everything */
+    pointer-events: none;
 }
 
 /* --- Header --- */
@@ -124,12 +149,19 @@ header h1 {
 }
 
 /* --- Content Sections --- */
+main {
+    position: relative;
+    z-index: 1;
+}
+
 .content {
     display: none;
     padding: 1.5rem 1rem 3rem;
     max-width: 680px;
     margin: 0 auto;
     animation: fadeIn 0.35s ease;
+    position: relative;
+    z-index: 10;
 }
 
 .content.active {
