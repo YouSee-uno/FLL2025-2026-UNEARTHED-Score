@@ -1,5 +1,5 @@
 /* ============================================
-   FLL Challenge UNEARTHED — Glassmorphism Theme
+   FLL Challenge Score App by Crefus — Glassmorphism Theme
    Base: White  |  Font: BIZ UDGothic
    ============================================ */
 
@@ -70,8 +70,8 @@ body::before {
     background-repeat: no-repeat;
     background-position: center;
     background-size: 60%; /* Large watermark style */
-    filter: blur(12px);
-    opacity: 0.2; /* Increased for better visibility */
+    filter: blur(4px);
+    opacity: 0.22; /* Slightly increased and much clearer */
     transform: translate(-50%, -50%) scale(1.1); /* Scale up slightly to avoid blurred edge artifacts */
     z-index: -10; /* Lowered further to ensure it's behind everything */
     pointer-events: none;
@@ -96,7 +96,180 @@ header h1 {
     font-weight: 700;
     letter-spacing: 0.04em;
     color: var(--text-primary);
+    margin-bottom: 0;
+    text-align: center;
+}
+
+header h1 .logo-blue {
+    color: var(--accent);
+}
+
+header h1 .logo-red {
+    color: var(--red);
+}
+
+/* --- Device Toggle Button Group (Shadcn UI style) --- */
+.header-top {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 0.75rem;
+    min-height: 40px;
+}
+
+.device-toggle-group {
+    position: absolute;
+    right: 0;
+    display: inline-flex;
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.04);
+    padding: 3px;
+    border: 1.5px solid var(--border-light);
+    backdrop-filter: blur(8px);
+}
+
+.device-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: var(--radius-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+}
+
+.device-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.45);
+}
+
+.device-btn.active {
+    color: var(--accent-dark);
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.device-btn svg {
+    display: block;
+    stroke-width: 2px;
+}
+
+/* --- Device Emulator Viewport Modes --- */
+.app-container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smartphone Mode Emulator */
+body.mode-smartphone {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 1rem;
+    background: #cbd5e1;
+    min-height: 100vh;
+}
+
+body.mode-smartphone .app-container {
+    max-width: 412px;
+    width: 100%;
+    height: 820px;
+    border: 12px solid #1e293b;
+    border-radius: 36px;
+    background: var(--bg-main);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    position: relative;
+    background-image:
+        radial-gradient(ellipse 300px 300px at 10% 20%, rgba(59, 130, 246, 0.08), transparent),
+        radial-gradient(ellipse 250px 250px at 85% 80%, rgba(249, 115, 22, 0.06), transparent),
+        radial-gradient(ellipse 200px 200px at 50% 50%, rgba(34, 197, 94, 0.05), transparent);
+}
+
+body.mode-smartphone header {
+    position: sticky;
+    top: 0;
+    border-radius: 24px 24px 0 0;
+}
+
+body.mode-smartphone main {
+    position: static;
+    height: calc(100% - 104px);
+    overflow-y: auto;
+}
+
+body.mode-smartphone .score-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 0 0 24px 24px;
+}
+
+body.mode-smartphone .content,
+body.mode-tablet .content {
+    position: static;
+}
+
+/* Tablet Mode Emulator */
+body.mode-tablet {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 1rem;
+    background: #cbd5e1;
+    min-height: 100vh;
+}
+
+body.mode-tablet .app-container {
+    max-width: 768px;
+    width: 100%;
+    height: 1024px;
+    border: 14px solid #1e293b;
+    border-radius: 28px;
+    background: var(--bg-main);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    position: relative;
+    background-image:
+        radial-gradient(ellipse 500px 500px at 10% 20%, rgba(59, 130, 246, 0.08), transparent),
+        radial-gradient(ellipse 400px 400px at 85% 80%, rgba(249, 115, 22, 0.06), transparent),
+        radial-gradient(ellipse 300px 300px at 50% 50%, rgba(34, 197, 94, 0.05), transparent);
+}
+
+body.mode-tablet header {
+    position: sticky;
+    top: 0;
+    border-radius: 14px 14px 0 0;
+}
+
+body.mode-tablet main {
+    position: static;
+    height: calc(100% - 104px);
+    overflow-y: auto;
+}
+
+body.mode-tablet .score-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 0 0 14px 14px;
+}
+
+/* Normal PC Mode */
+body.mode-pc {
+    display: block;
+    padding: 0;
+    background: transparent;
 }
 
 /* --- Tab Bar --- */
@@ -119,6 +292,15 @@ header h1 {
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     transition: color var(--transition), background var(--transition);
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.tab-icon {
+    display: block;
+    stroke-width: 2.2px;
 }
 
 .tab-button::after {
@@ -419,7 +601,9 @@ main {
 }
 
 .score-form {
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border-light);
     padding: 24px;
     border-radius: var(--radius);
@@ -681,6 +865,18 @@ main {
 
 /* --- Responsive --- */
 @media (max-width: 600px) {
+    .header-top {
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+        text-align: center;
+        min-height: auto;
+    }
+
+    .device-toggle-group {
+        position: static;
+    }
+
     .content {
         padding: 1rem 0.75rem 2.5rem;
     }
@@ -690,8 +886,9 @@ main {
     }
 
     .tab-button {
-        padding: 8px 14px;
-        font-size: 13px;
+        padding: 8px 10px;
+        font-size: 12px;
+        gap: 4px;
     }
 
     .lap-summary-container {

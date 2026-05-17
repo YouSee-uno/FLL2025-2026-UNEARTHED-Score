@@ -46,9 +46,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- ミッションデータの読み込みとパース ---
     async function loadMissions() {
+        let text = '';
         try {
-            // ローカル実行時のCORSエラーを回避するため、データを直接埋め込みます
-            const text = `# [ボーナス] 大きさ点検ボーナス
+            // サーバー実行時は missions.md を直接読み込む（キャッシュ回避のためタイムスタンプを付与）
+            const response = await fetch('missions.md?t=' + Date.now());
+            if (response.ok) {
+                text = await response.text();
+                console.log('Loaded missions from missions.md');
+            } else {
+                throw new Error('Fetch failed');
+            }
+        } catch (error) {
+            console.warn('Falling back to embedded mission data:', error);
+            // ローカル（file://）実行時のCORSエラーを回避するため、データを直接埋め込みます
+            text = `# [ボーナス] 大きさ点検ボーナス
 全てのロボットと装備が30.5cm以内に収まった
 - option:
   - Yes: 20
@@ -197,58 +208,56 @@ document.addEventListener('DOMContentLoaded', async () => {
   - 20点: 20
   - 30点: 30
 `;
-            const parsedMissions = [];
-            let currentMission = null;
-            let currentOption = null;
-
-            const lines = text.split('\n');
-            lines.forEach((line, index) => {
-                const h1Match = line.match(/^#\s+\[(.*?)\]\s+(.*)/);
-                if (h1Match) {
-                    currentMission = {
-                        id: `m${parsedMissions.length}`,
-                        ribbon: h1Match[1],
-                        title: h1Match[2],
-                        description: '',
-                        options: []
-                    };
-                    parsedMissions.push(currentMission);
-                    currentOption = null;
-                    return;
-                }
-
-                const optionMatch = line.match(/^\-\s+option:\s*(.*)/);
-                if (optionMatch) {
-                    currentOption = {
-                        label: optionMatch[1].trim(),
-                        values: [],
-                        defaultValue: null
-                    };
-                    currentMission.options.push(currentOption);
-                    return;
-                }
-
-                const valueMatch = line.match(/^\s+\-\s+(.*?):\s*(.*)/);
-                if (valueMatch && currentOption) {
-                    const key = valueMatch[1].trim();
-                    const val = valueMatch[2].trim();
-                    if (key === 'default') {
-                        currentOption.defaultValue = val;
-                    } else {
-                        currentOption.values.push({ label: key, points: parseInt(val, 10) });
-                    }
-                    return;
-                }
-
-                if (currentMission && !currentOption && line.trim() && !line.startsWith('#') && !line.startsWith('-')) {
-                    currentMission.description += line.trim() + ' ';
-                }
-            });
-            return parsedMissions;
-        } catch (error) {
-            console.error('Failed to load missions:', error);
-            return [];
         }
+
+        const parsedMissions = [];
+        let currentMission = null;
+        let currentOption = null;
+
+        const lines = text.split('\n');
+        lines.forEach((line, index) => {
+            const h1Match = line.match(/^#\s+\[(.*?)\]\s+(.*)/);
+            if (h1Match) {
+                currentMission = {
+                    id: `m${parsedMissions.length}`,
+                    ribbon: h1Match[1],
+                    title: h1Match[2],
+                    description: '',
+                    options: []
+                };
+                parsedMissions.push(currentMission);
+                currentOption = null;
+                return;
+            }
+
+            const optionMatch = line.match(/^\-\s+option:\s*(.*)/);
+            if (optionMatch) {
+                currentOption = {
+                    label: optionMatch[1].trim(),
+                    values: [],
+                    defaultValue: null
+                };
+                currentMission.options.push(currentOption);
+                return;
+            }
+
+            const valueMatch = line.match(/^\s+\-\s+(.*?):\s*(.*)/);
+            if (valueMatch && currentOption) {
+                const key = valueMatch[1].trim();
+                const val = valueMatch[2].trim();
+                if (key === 'default') {
+                    currentOption.defaultValue = val;
+                } else {
+                    currentOption.values.push({ label: key, points: parseInt(val, 10) });
+                }
+                return;
+            }
+
+            if (currentMission && !currentOption && line.trim() && !line.startsWith('#') && !line.startsWith('-')) {
+                currentMission.description += line.trim() + ' ';
+            }
+        });
+        return parsedMissions;
     }
 
     // --- ミッションの描画 ---
@@ -449,6 +458,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             timeLeft = 0;
             clearInterval(timerInterval);
             isRunning = false;
+            recordFinalSegment();
             updateInputs(0);
             drawTimerCircle(0);
             alert('時間切れです！');
@@ -468,6 +478,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isRun) li.classList.add('lap-run');
         else li.classList.add('lap-exchange');
         lapTimesList.prepend(li);
+    }
+
+    function recordFinalSegment() {
+        if (lastLapTime > timeLeft) {
+            const timeDiff = lastLapTime - timeLeft;
+            lastLapTime = timeLeft;
+            
+            if (exchangeButton.textContent === '交換') {
+                runCount++;
+                addLapTime(`${runCount} Run`, timeDiff, true);
+                totalRunTime += timeDiff;
+                totalRunTimeDisplay.textContent = (totalRunTime / 100).toFixed(2);
+            } else {
+                exchangeCount++;
+                addLapTime(`交換 ${exchangeCount}回目`, timeDiff, false);
+                totalExchangeTime += timeDiff;
+                totalExchangeTimeDisplay.textContent = (totalExchangeTime / 100).toFixed(2);
+            }
+        }
     }
 
     startStopButton.addEventListener('click', () => {
@@ -494,6 +523,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearInterval(timerInterval);
             isRunning = false;
             startStopButton.textContent = 'スタート';
+            recordFinalSegment();
         }
     });
 
@@ -614,6 +644,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             scoreHistoryList.appendChild(row);
         });
     }
+
+    // デバイス切り替えロジック
+    const smartphoneBtn = document.getElementById('device-smartphone');
+    const tabletBtn = document.getElementById('device-tablet');
+    const pcBtn = document.getElementById('device-pc');
+
+    function setDeviceMode(mode) {
+        document.body.classList.remove('mode-smartphone', 'mode-tablet', 'mode-pc');
+        
+        smartphoneBtn.classList.remove('active');
+        tabletBtn.classList.remove('active');
+        pcBtn.classList.remove('active');
+        
+        if (mode === 'smartphone') {
+            document.body.classList.add('mode-smartphone');
+            smartphoneBtn.classList.add('active');
+        } else if (mode === 'tablet') {
+            document.body.classList.add('mode-tablet');
+            tabletBtn.classList.add('active');
+        } else {
+            document.body.classList.add('mode-pc');
+            pcBtn.classList.add('active');
+        }
+    }
+
+    smartphoneBtn.addEventListener('click', () => setDeviceMode('smartphone'));
+    tabletBtn.addEventListener('click', () => setDeviceMode('tablet'));
+    pcBtn.addEventListener('click', () => setDeviceMode('pc'));
 
     updateInputs(timeLeft);
     drawTimerCircle(1);
