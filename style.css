@@ -94,6 +94,61 @@ header {
     top: 0;
     z-index: 100;
     box-shadow: 0 1px 12px rgba(0, 0, 0, 0.04);
+    transition: margin-top 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+/* --- Accordion Header Toggle --- */
+.header-toggle-btn {
+    position: absolute;
+    bottom: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 44px;
+    height: 18px;
+    background: rgba(30, 41, 59, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.25s ease;
+    padding: 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.header-toggle-btn:hover {
+    color: #fff;
+    background: rgba(30, 41, 59, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.header-toggle-btn .chevron-icon {
+    transition: transform 0.3s ease;
+}
+
+/* Collapsed State styling */
+.header-collapsed-mode .header-toggle-btn {
+    position: fixed;
+    top: 0;
+    bottom: auto;
+    border: 1px solid var(--glass-border);
+    border-top: none;
+    background: rgba(30, 41, 59, 0.95);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.header-collapsed-mode .header-toggle-btn .chevron-icon {
+    transform: rotate(180deg);
+}
+
+.header-collapsed-mode #camera-section.cam-fullscreen {
+    height: 100vh;
 }
 
 header h1 {
@@ -597,8 +652,8 @@ main {
 }
 
 .cam-round-btn {
-    width: 62px;
-    height: 62px;
+    width: var(--cam-btn-size, 62px);
+    height: var(--cam-btn-size, 62px);
     border-radius: 50%;
     border: none;
     display: flex;
@@ -631,8 +686,8 @@ main {
     background: rgba(255,255,255,0.18);
     border: 3px solid rgba(255,255,255,0.9) !important;
     color: var(--red);
-    width: 70px;
-    height: 70px;
+    width: var(--cam-rec-btn-size, 70px);
+    height: var(--cam-rec-btn-size, 70px);
 }
 
 .cam-btn-record.recording {
@@ -1162,5 +1217,52 @@ main {
 
     header h1 {
         font-size: 1.1rem;
+    }
+}
+
+/* ---- Responsive Camera Tab Controls ---- */
+@media (max-width: 768px) {
+    :root {
+        --cam-btn-size: 46px;
+        --cam-rec-btn-size: 52px;
+    }
+    .cam-btn-label {
+        font-size: 9px !important;
+        margin-bottom: 3px !important;
+    }
+    .cam-controls-col {
+        gap: 4px !important;
+        right: 8px !important;
+    }
+    .cam-round-btn svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+    .cam-btn-record svg {
+        width: 22px !important;
+        height: 22px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --cam-btn-size: 38px;
+        --cam-rec-btn-size: 44px;
+    }
+    .cam-btn-label {
+        font-size: 8px !important;
+        margin-bottom: 2px !important;
+    }
+    .cam-controls-col {
+        gap: 2px !important;
+        right: 6px !important;
+    }
+    .cam-round-btn svg {
+        width: 15px !important;
+        height: 15px !important;
+    }
+    .cam-btn-record svg {
+        width: 18px !important;
+        height: 18px !important;
     }
 }

@@ -46,6 +46,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     let timerStartStamp = null;
     let timerLeftAtStart = null;
 
+    // ======================================
+    // ヘッダー アコーディオン切り替え
+    // ======================================
+    const headerElement    = document.querySelector('header');
+    const headerToggleBtn  = document.getElementById('headerToggleBtn');
+
+    headerToggleBtn.addEventListener('click', () => {
+        const isCollapsed = headerElement.classList.contains('collapsed');
+        if (isCollapsed) {
+            headerElement.style.marginTop = '0px';
+            headerElement.classList.remove('collapsed');
+            document.body.classList.remove('header-collapsed-mode');
+        } else {
+            headerElement.style.marginTop = `-${headerElement.offsetHeight}px`;
+            headerElement.classList.add('collapsed');
+            document.body.classList.add('header-collapsed-mode');
+        }
+        
+        // 高さが切り替わったため、カメラセクションが表示中の場合は向き検知等を再確認
+        if (typeof checkOrientation === 'function') {
+            setTimeout(checkOrientation, 350);
+        }
+    });
+
     // --- ミッションデータの読み込みとパース ---
     async function loadMissions() {
         let text = '';
