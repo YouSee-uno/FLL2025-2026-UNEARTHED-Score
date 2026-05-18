@@ -94,13 +94,21 @@ header {
     top: 0;
     z-index: 100;
     box-shadow: 0 1px 12px rgba(0, 0, 0, 0.04);
-    transition: margin-top 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    /* Transition transform for smooth hardware-accelerated collapse sliding */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+header.collapsed {
+    transform: translateY(-100%);
+    pointer-events: none;
 }
 
 /* --- Accordion Header Toggle --- */
 .header-toggle-btn {
-    position: absolute;
-    bottom: -16px;
+    position: fixed;
+    /* Use dynamic measured header height, falls back to 104px */
+    top: var(--header-height, 104px);
+    margin-top: -1px; /* Align perfectly with header border */
     left: 50%;
     transform: translateX(-50%);
     width: 44px;
@@ -117,7 +125,7 @@ header {
     justify-content: center;
     cursor: pointer;
     z-index: 1000;
-    transition: all 0.25s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     padding: 0;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 }
@@ -134,9 +142,7 @@ header {
 
 /* Collapsed State styling */
 .header-collapsed-mode .header-toggle-btn {
-    position: fixed;
     top: 0;
-    bottom: auto;
     border: 1px solid var(--glass-border);
     border-top: none;
     background: rgba(30, 41, 59, 0.95);
@@ -247,6 +253,7 @@ header h1 .logo-red {
 main {
     position: relative;
     z-index: 1;
+    transition: margin-top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .content {

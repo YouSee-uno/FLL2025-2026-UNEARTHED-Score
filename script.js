@@ -50,17 +50,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ヘッダー アコーディオン切り替え
     // ======================================
     const headerElement    = document.querySelector('header');
+    const mainElement      = document.querySelector('main');
     const headerToggleBtn  = document.getElementById('headerToggleBtn');
+
+    // 動的にヘッダーの高さをCSS変数にセットする関数
+    function updateHeaderHeightProperty() {
+        if (headerElement) {
+            const h = headerElement.offsetHeight;
+            document.documentElement.style.setProperty('--header-height', `${h}px`);
+        }
+    }
+    
+    // 初期セットおよびリサイズ時の追従
+    updateHeaderHeightProperty();
+    window.addEventListener('resize', updateHeaderHeightProperty);
 
     headerToggleBtn.addEventListener('click', () => {
         const isCollapsed = headerElement.classList.contains('collapsed');
         if (isCollapsed) {
-            headerElement.style.marginTop = '0px';
+            // ヘッダーを展開
             headerElement.classList.remove('collapsed');
+            mainElement.style.marginTop = '0px';
             document.body.classList.remove('header-collapsed-mode');
         } else {
-            headerElement.style.marginTop = `-${headerElement.offsetHeight}px`;
+            // ヘッダーを折りたたみ (GPUアクセラレーションのtranslateYを使用)
+            const h = headerElement.offsetHeight;
             headerElement.classList.add('collapsed');
+            mainElement.style.marginTop = `-${h}px`;
             document.body.classList.add('header-collapsed-mode');
         }
         
