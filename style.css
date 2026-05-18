@@ -31,7 +31,9 @@
 }
 
 /* --- Reset & Base --- */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -69,11 +71,15 @@ body::before {
     background-image: url('fll_logo.png');
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 60%; /* Large watermark style */
+    background-size: 60%;
+    /* Large watermark style */
     filter: blur(4px);
-    opacity: 0.22; /* Slightly increased and much clearer */
-    transform: translate(-50%, -50%) scale(1.1); /* Scale up slightly to avoid blurred edge artifacts */
-    z-index: -10; /* Lowered further to ensure it's behind everything */
+    opacity: 0.22;
+    /* Slightly increased and much clearer */
+    transform: translate(-50%, -50%) scale(1.1);
+    /* Scale up slightly to avoid blurred edge artifacts */
+    z-index: -10;
+    /* Lowered further to ensure it's behind everything */
     pointer-events: none;
 }
 
@@ -108,168 +114,20 @@ header h1 .logo-red {
     color: var(--red);
 }
 
-/* --- Device Toggle Button Group (Shadcn UI style) --- */
+/* --- Header Top --- */
 .header-top {
-    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 12px;
     margin-bottom: 0.75rem;
-    min-height: 40px;
 }
 
-.device-toggle-group {
-    position: absolute;
-    right: 0;
-    display: inline-flex;
-    border-radius: var(--radius-sm);
-    background: rgba(0, 0, 0, 0.04);
-    padding: 3px;
-    border: 1.5px solid var(--border-light);
-    backdrop-filter: blur(8px);
-}
-
-.device-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    padding: 6px 10px;
-    cursor: pointer;
-    border-radius: var(--radius-xs);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition);
-}
-
-.device-btn:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.45);
-}
-
-.device-btn.active {
-    color: var(--accent-dark);
-    background: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.device-btn svg {
-    display: block;
-    stroke-width: 2px;
-}
-
-/* --- Device Emulator Viewport Modes --- */
 .app-container {
     width: 100%;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Smartphone Mode Emulator */
-body.mode-smartphone {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 2rem 1rem;
-    background: #cbd5e1;
-    min-height: 100vh;
-}
-
-body.mode-smartphone .app-container {
-    max-width: 412px;
-    width: 100%;
-    height: 820px;
-    border: 12px solid #1e293b;
-    border-radius: 36px;
-    background: var(--bg-main);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    overflow: hidden;
-    position: relative;
-    background-image:
-        radial-gradient(ellipse 300px 300px at 10% 20%, rgba(59, 130, 246, 0.08), transparent),
-        radial-gradient(ellipse 250px 250px at 85% 80%, rgba(249, 115, 22, 0.06), transparent),
-        radial-gradient(ellipse 200px 200px at 50% 50%, rgba(34, 197, 94, 0.05), transparent);
-}
-
-body.mode-smartphone header {
-    position: sticky;
-    top: 0;
-    border-radius: 24px 24px 0 0;
-}
-
-body.mode-smartphone main {
-    position: static;
-    height: calc(100% - 104px);
-    overflow-y: auto;
-}
-
-body.mode-smartphone .score-footer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    border-radius: 0 0 24px 24px;
-}
-
-body.mode-smartphone .content,
-body.mode-tablet .content {
-    position: static;
-}
-
-/* Tablet Mode Emulator */
-body.mode-tablet {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 2rem 1rem;
-    background: #cbd5e1;
-    min-height: 100vh;
-}
-
-body.mode-tablet .app-container {
-    max-width: 768px;
-    width: 100%;
-    height: 1024px;
-    border: 14px solid #1e293b;
-    border-radius: 28px;
-    background: var(--bg-main);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    overflow: hidden;
-    position: relative;
-    background-image:
-        radial-gradient(ellipse 500px 500px at 10% 20%, rgba(59, 130, 246, 0.08), transparent),
-        radial-gradient(ellipse 400px 400px at 85% 80%, rgba(249, 115, 22, 0.06), transparent),
-        radial-gradient(ellipse 300px 300px at 50% 50%, rgba(34, 197, 94, 0.05), transparent);
-}
-
-body.mode-tablet header {
-    position: sticky;
-    top: 0;
-    border-radius: 14px 14px 0 0;
-}
-
-body.mode-tablet main {
-    position: static;
-    height: calc(100% - 104px);
-    overflow-y: auto;
-}
-
-body.mode-tablet .score-footer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    border-radius: 0 0 14px 14px;
-}
-
-/* Normal PC Mode */
-body.mode-pc {
-    display: block;
-    padding: 0;
-    background: transparent;
 }
 
 /* --- Tab Bar --- */
@@ -351,8 +209,15 @@ main {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .content h2 {
@@ -475,13 +340,15 @@ main {
     cursor: not-allowed;
 }
 
-#resetButton, #scoreResetButton {
+#resetButton,
+#scoreResetButton {
     background: var(--red-light);
     border: 1.5px solid rgba(239, 68, 68, 0.3);
     color: var(--red);
 }
 
-#resetButton:hover, #scoreResetButton:hover {
+#resetButton:hover,
+#scoreResetButton:hover {
     background: rgba(239, 68, 68, 0.18);
     box-shadow: 0 4px 16px rgba(239, 68, 68, 0.12);
     transform: translateY(-1px);
@@ -531,8 +398,15 @@ main {
 }
 
 @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-12px); }
-    to   { opacity: 1; transform: translateX(0); }
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 #total-times-table {
@@ -591,13 +465,412 @@ main {
 }
 
 /* ============================
+   Camera Section — Full-screen
+   ============================ */
+
+/* Override .content layout for camera to be truly full-screen */
+/* NOTE: display is handled by .content.active — do NOT add display:block here */
+#camera-section.cam-fullscreen {
+    padding: 0;
+    max-width: 100%;
+    margin: 0;
+    position: relative;
+    width: 100%;
+    /* Fill remaining viewport height below the sticky header */
+    height: calc(100vh - 104px);
+    background: #000;
+    overflow: hidden;
+    animation: none;
+}
+
+/* Full-screen video */
+#camera-section.cam-fullscreen #camera-stream {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    background: #111;
+}
+
+/* ---- Overlays ---- */
+
+/* Timer top-left */
+.cam-timer-overlay {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    font-family: 'BIZ UDGothic', 'BIZ UD Gothic', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+    z-index: 20;
+    letter-spacing: 0.04em;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 6px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* REC indicator top-left (below timer) */
+.cam-rec-indicator {
+    position: absolute;
+    top: 72px;
+    left: 18px;
+    display: none; /* shown via JS when recording */
+    align-items: center;
+    gap: 6px;
+    font-family: 'BIZ UDGothic', 'BIZ UD Gothic', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    z-index: 20;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 4px 10px;
+    border-radius: 8px;
+}
+
+.cam-rec-indicator.active {
+    display: flex;
+}
+
+.cam-rec-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    animation: recBlink 1s ease-in-out infinite;
+}
+
+@keyframes recBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+}
+
+/* Camera selector top-right */
+.cam-selector-overlay {
+    position: absolute;
+    top: 16px;
+    right: 96px; /* leave room for the controls column */
+    z-index: 20;
+}
+
+.cam-glass-select {
+    font-family: 'BIZ UDGothic', 'BIZ UD Gothic', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 8px;
+    padding: 6px 10px;
+    outline: none;
+    cursor: pointer;
+    max-width: 180px;
+}
+
+.cam-glass-select option {
+    background: #1e293b;
+    color: #fff;
+}
+
+/* ---- Right-side Round Buttons Column ---- */
+.cam-controls-col {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    z-index: 20;
+}
+
+.cam-round-btn {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    position: relative;
+}
+
+.cam-round-btn:hover {
+    transform: scale(1.08);
+}
+
+.cam-round-btn:active {
+    transform: scale(0.94);
+}
+
+.cam-round-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Record button — white ring with red fill */
+.cam-btn-record {
+    background: rgba(255,255,255,0.18);
+    border: 3px solid rgba(255,255,255,0.9) !important;
+    color: var(--red);
+    width: 70px;
+    height: 70px;
+}
+
+.cam-btn-record.recording {
+    color: #fff;
+    background: var(--red);
+    border-color: rgba(255,255,255,0.6) !important;
+    animation: recordPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes recordPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.6), 0 4px 20px rgba(0,0,0,0.45); }
+    50% { box-shadow: 0 0 0 10px rgba(239,68,68,0), 0 4px 20px rgba(0,0,0,0.45); }
+}
+
+/* Start/Stop — orange */
+.cam-btn-start {
+    background: rgba(249,115,22,0.25);
+    border: 2.5px solid rgba(249,115,22,0.8) !important;
+    color: #fff;
+}
+
+.cam-btn-start.running {
+    background: rgba(249,115,22,0.55);
+}
+
+/* Exchange — green */
+.cam-btn-exchange {
+    background: rgba(34,197,94,0.25);
+    border: 2.5px solid rgba(34,197,94,0.8) !important;
+    color: #fff;
+}
+
+/* Reset — red/muted */
+.cam-btn-reset {
+    background: rgba(239,68,68,0.2);
+    border: 2.5px solid rgba(239,68,68,0.6) !important;
+    color: #fff;
+}
+
+.cam-btn-label {
+    font-family: 'BIZ UDGothic', 'BIZ UD Gothic', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+}
+
+/* ---- Landscape-only Orientation Warning ---- */
+.cam-orientation-warning {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 100;
+    display: none; /* shown via JS when portrait */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    color: #fff;
+    text-align: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.cam-orientation-warning.visible {
+    display: flex;
+}
+
+.cam-orientation-icon {
+    animation: rotateHint 2s ease-in-out infinite;
+    color: var(--orange);
+}
+
+@keyframes rotateHint {
+    0%, 100% { transform: rotate(0deg); }
+    30% { transform: rotate(-90deg); }
+    60% { transform: rotate(-90deg); }
+    90% { transform: rotate(0deg); }
+}
+
+.cam-orientation-warning p {
+    font-family: 'BIZ UDGothic', 'BIZ UD Gothic', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    letter-spacing: 0.05em;
+}
+
+/* ---- Timeline Toggle Tabs (Radix/shadcn style) ---- */
+.cam-tab-switcher {
+    position: absolute;
+    bottom: 68px; /* sits just above the timeline wrapper */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 25;
+}
+
+.cam-tab-list {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 4px;
+    gap: 2px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.cam-tab-trigger {
+    font-family: 'BIZ UDGothic', 'BIZ UD Gothic', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.6);
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    padding: 6px 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+
+.cam-tab-trigger[data-state="active"] {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+}
+
+.cam-tab-trigger:hover:not(:disabled) {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.cam-tab-trigger[data-state="active"]:hover {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+}
+
+/* Disabled state — during recording */
+.cam-tab-list.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.cam-tab-list.disabled .cam-tab-trigger {
+    cursor: not-allowed;
+}
+
+/* Timeline wrapper hidden state */
+.cam-timeline-wrapper.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Exchange button — "走行" (run) state = orange */
+.cam-btn-exchange.is-run {
+    background: rgba(249, 115, 22, 0.35);
+    border-color: rgba(249, 115, 22, 0.9) !important;
+    color: #fff;
+    box-shadow: 0 0 0 0 rgba(249,115,22,0.5), 0 4px 20px rgba(0,0,0,0.45);
+}
+
+/* ---- Bottom Timeline Bar ---- */
+.cam-timeline-wrapper {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    padding: 10px 14px 14px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+}
+
+.cam-timeline-track {
+    width: 100%;
+    height: 10px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex; /* segments rendered inside */
+}
+
+/* Each segment is a child div added by JS */
+.cam-timeline-track .tl-segment {
+    height: 100%;
+    transition: width 0.1s linear;
+}
+
+.tl-segment.run {
+    background: var(--orange);
+    box-shadow: 0 0 6px rgba(249,115,22,0.6);
+}
+
+.tl-segment.exchange {
+    background: var(--green);
+    box-shadow: 0 0 6px rgba(34,197,94,0.6);
+}
+
+.cam-timeline-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 5px;
+    font-family: 'BIZ UDGothic', 'BIZ UD Gothic', sans-serif;
+    font-size: 11px;
+    color: rgba(255,255,255,0.75);
+    font-weight: 700;
+}
+
+.cam-timeline-label strong {
+    font-size: 13px;
+    color: #fff;
+}
+
+/* ============================
    Score Section
    ============================ */
 #score-section {
     max-width: 640px;
     margin: 0 auto;
     text-align: left;
-    padding-bottom: 100px; /* Space for the fixed footer */
+    padding-bottom: 100px;
+    /* Space for the fixed footer */
 }
 
 .score-form {
@@ -639,7 +912,8 @@ main {
     padding: 0.6rem 1.5rem;
     color: #fff;
     border-radius: 0 100vh 100vh 0;
-    background: var(--green); /* Green base */
+    background: var(--green);
+    /* Green base */
     box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);
 }
 
@@ -650,14 +924,16 @@ main {
     width: 0;
     height: 0;
     content: '';
-    border-top: 10px solid #15803d; /* Dark green for fold */
+    border-top: 10px solid #15803d;
+    /* Dark green for fold */
     border-left: 10px solid transparent;
 }
 
 .score-item .mission-title {
     font-family: 'BIZ UDGothic', 'BIZ UD Gothic', sans-serif;
     font-size: 16px;
-    font-weight: 700; /* Bold as requested */
+    font-weight: 700;
+    /* Bold as requested */
     color: var(--text-primary);
 }
 
@@ -863,20 +1139,7 @@ main {
     transform: translateY(-1px);
 }
 
-/* --- Responsive --- */
 @media (max-width: 600px) {
-    .header-top {
-        flex-direction: column;
-        gap: 8px;
-        align-items: center;
-        text-align: center;
-        min-height: auto;
-    }
-
-    .device-toggle-group {
-        position: static;
-    }
-
     .content {
         padding: 1rem 0.75rem 2.5rem;
     }

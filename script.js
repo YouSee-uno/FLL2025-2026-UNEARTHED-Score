@@ -1,9 +1,11 @@
 document.addEventListener('DOMContentLoaded', async () => {
     // DOM要素の取得
     const timerTab = document.getElementById('timerTab');
+    const cameraTab = document.getElementById('cameraTab');
     const scoreTab = document.getElementById('scoreTab');
     const historyTab = document.getElementById('historyTab');
     const timerSection = document.getElementById('timer-section');
+    const cameraSection = document.getElementById('camera-section');
     const scoreSection = document.getElementById('score-section');
     const historySection = document.getElementById('history-section');
 
@@ -372,37 +374,571 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderMissions();
     resetScoreButtons();
 
-    // --- タブ切り替え機能 ---
+    // ======================================
+    // カメラタブ — 変数定義
+    // ======================================
+    const videoElement    = document.getElementById('camera-stream');
+    const cameraSelect    = document.getElementById('camera-select');
+    const camRecordBtn    = document.getElementById('camRecordButton');
+    const camStartStopBtn = document.getElementById('camStartStopButton');
+    const camExchangeBtn  = document.getElementById('camExchangeButton');
+    const camResetBtn     = document.getElementById('camResetButton');
+    const camStartLabel   = document.getElementById('camStartLabel');
+    const camExchangeLbl  = document.getElementById('camExchangeLabel');
+    const camTimerOverlay = document.getElementById('camTimerOverlay');
+    const camRecIndicator = document.getElementById('camRecIndicator');
+    const camTimelineTrack= document.getElementById('camTimelineTrack');
+    const camRemaining    = document.getElementById('camTimelineRemaining');
+    const camOrientWarn   = document.getElementById('camOrientationWarning');
+    const camTabList       = document.querySelector('.cam-tab-list');
+    const camTabOn         = document.getElementById('camTabOn');
+    const camTabOff        = document.getElementById('camTabOff');
+    const camTimelineWrapper = document.getElementById('camTimelineWrapper');
+
+    let cameraStream   = null;
+    let mediaRecorder  = null;
+    let recordedChunks = [];
+    let recordCanvas   = null;
+    let recordCanvasCtx = null;
+    let recordAnimationId = null;
+
+    // カメラ専用タイマー (2:30 = 15000 cs)
+    const CAM_TOTAL_CS = 15000; // 2分30秒 = 15000 centiseconds
+    let camTimeLeft    = CAM_TOTAL_CS;
+    let camIsRunning   = false;
+    let camTimerInterval = null;
+    let camStartStamp  = null;
+    let camLeftAtStart = null;
+    let camRunCount    = 0;
+    let camExchangeCount = 0;
+    let camLastLapTime = CAM_TOTAL_CS;
+    let camIsExchange  = false; // false = Run, true = Exchange
+
+    // タイムラインセグメント: [{type:'run'|'exchange', startCs, endCs}]
+    let camSegments = [];
+    let camCurrentSegmentStart = CAM_TOTAL_CS; // 現在のセグメント開始時点のタイマー値
+
+    // ======================================
+    // タブ切り替え
+    // ======================================
+    function stopCameraStream() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(t => t.stop());
+            cameraStream = null;
+            videoElement.srcObject = null;
+        }
+        // 録画中なら停止
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+        // 録画キャンバスループの停止
+        if (recordAnimationId) {
+            cancelAnimationFrame(recordAnimationId);
+            recordAnimationId = null;
+        }
+        recordCanvas = null;
+        recordCanvasCtx = null;
+
+        // カメラタイマーも停止
+        if (camTimerInterval) {
+            clearInterval(camTimerInterval);
+            camTimerInterval = null;
+        }
+    }
+
     timerTab.addEventListener('click', () => {
+        stopCameraStream();
         timerTab.classList.add('active');
+        cameraTab.classList.remove('active');
         scoreTab.classList.remove('active');
         historyTab.classList.remove('active');
         timerSection.classList.add('active');
+        cameraSection.classList.remove('active');
         scoreSection.classList.remove('active');
         historySection.classList.remove('active');
     });
 
+    cameraTab.addEventListener('click', () => {
+        cameraTab.classList.add('active');
+        timerTab.classList.remove('active');
+        scoreTab.classList.remove('active');
+        historyTab.classList.remove('active');
+        cameraSection.classList.add('active');
+        timerSection.classList.remove('active');
+        scoreSection.classList.remove('active');
+        historySection.classList.remove('active');
+        // カメラタブを開いたら自動でカメラ起動
+        initCameraAndDevices();
+        // 向きをチェック
+        checkOrientation();
+    });
+
     scoreTab.addEventListener('click', () => {
+        stopCameraStream();
         scoreTab.classList.add('active');
         timerTab.classList.remove('active');
+        cameraTab.classList.remove('active');
         historyTab.classList.remove('active');
         scoreSection.classList.add('active');
         timerSection.classList.remove('active');
+        cameraSection.classList.remove('active');
         historySection.classList.remove('active');
         calculateScore();
     });
-    
+
     historyTab.addEventListener('click', () => {
+        stopCameraStream();
         historyTab.classList.add('active');
         timerTab.classList.remove('active');
+        cameraTab.classList.remove('active');
         scoreTab.classList.remove('active');
         historySection.classList.add('active');
         scoreSection.classList.remove('active');
         timerSection.classList.remove('active');
+        cameraSection.classList.remove('active');
         updateHistoryList();
     });
 
-    // --- タイマー機能 ---
+    // ======================================
+    // カメラ起動 & デバイス一覧
+    // ======================================
+    async function initCameraAndDevices() {
+        try {
+            // 権限取得のために先にストリームを開く
+            const constraints = buildConstraints();
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(t => t.stop());
+            }
+            cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+            videoElement.srcObject = cameraStream;
+
+            // 権限取得後にデバイス一覧を取得（ラベルが取れる）
+            await populateCameraDevices();
+
+            // 実際に使われているデバイスを選択状態にする
+            if (cameraStream.getVideoTracks().length > 0) {
+                const settings = cameraStream.getVideoTracks()[0].getSettings();
+                if (settings.deviceId) cameraSelect.value = settings.deviceId;
+            }
+        } catch (err) {
+            console.error('Camera access error:', err);
+            camTimerOverlay.textContent = 'カメラ権限なし';
+        }
+    }
+
+    function buildConstraints() {
+        const deviceId = cameraSelect.value;
+        return {
+            video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' },
+            audio: true
+        };
+    }
+
+    async function populateCameraDevices() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        cameraSelect.innerHTML = '';
+        videoDevices.forEach((d, i) => {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId;
+            opt.textContent = d.label || `カメラ ${i + 1}`;
+            cameraSelect.appendChild(opt);
+        });
+    }
+
+    cameraSelect.addEventListener('change', () => {
+        if (cameraStream) initCameraAndDevices();
+    });
+
+    // ======================================
+    // 横画面チェック
+    // ======================================
+    function checkOrientation() {
+        // カメラセクションが表示されていない場合は何もしない
+        if (!cameraSection.classList.contains('active')) return;
+
+        let isPortrait;
+        if (window.screen && window.screen.orientation && window.screen.orientation.type) {
+            isPortrait = window.screen.orientation.type.startsWith('portrait');
+        } else {
+            // iOS Safari などのフォールバック
+            isPortrait = window.innerHeight > window.innerWidth;
+        }
+
+        if (isPortrait) {
+            camOrientWarn.classList.add('visible');
+        } else {
+            camOrientWarn.classList.remove('visible');
+        }
+    }
+
+    // 向き変更・リサイズ時に再チェック
+    window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 100));
+    window.addEventListener('resize', checkOrientation);
+
+    // ======================================
+    // タイムライン トグルタブ (Radix/shadcn)
+    // ======================================
+    camTabOn.addEventListener('click', () => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') return;
+        camTabOn.setAttribute('data-state', 'active');
+        camTabOn.classList.add('active');
+        camTabOff.setAttribute('data-state', 'inactive');
+        camTabOff.classList.remove('active');
+        camTimelineWrapper.classList.remove('hidden');
+    });
+
+    camTabOff.addEventListener('click', () => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') return;
+        camTabOff.setAttribute('data-state', 'active');
+        camTabOff.classList.add('active');
+        camTabOn.setAttribute('data-state', 'inactive');
+        camTabOn.classList.remove('active');
+        camTimelineWrapper.classList.add('hidden');
+    });
+
+    // ======================================
+    // 録画用キャンバス描画ループ (タイムラインバーの重ね合わせ)
+    // ======================================
+    function drawRecordFrame() {
+        if (!recordCanvas || !recordCanvasCtx) return;
+        const w = recordCanvas.width;
+        const h = recordCanvas.height;
+
+        // 1. カメラ映像をキャンバスに描画
+        recordCanvasCtx.drawImage(videoElement, 0, 0, w, h);
+
+        // 2. 「バーあり」のときのみ、タイムラインバーを動画内に重ねて描画
+        const showBar = camTabOn.getAttribute('data-state') === 'active';
+        if (showBar) {
+            // 最下部の黒背景帯を描画
+            const containerH = 45;
+            recordCanvasCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+            recordCanvasCtx.fillRect(0, h - containerH, w, containerH);
+
+            // タイムラインのサイズ設定
+            const trackX = 30;
+            const trackW = w - 60;
+            const trackH = 8;
+            const trackY = h - 24;
+
+            // タイムラインの背景トラックを描画
+            recordCanvasCtx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            recordCanvasCtx.beginPath();
+            if (recordCanvasCtx.roundRect) {
+                recordCanvasCtx.roundRect(trackX, trackY, trackW, trackH, 4);
+            } else {
+                recordCanvasCtx.rect(trackX, trackY, trackW, trackH);
+            }
+            recordCanvasCtx.fill();
+
+            // 完了済みセグメントを描画
+            camSegments.forEach(seg => {
+                const startPct = (CAM_TOTAL_CS - seg.startCs) / CAM_TOTAL_CS;
+                const endPct = (CAM_TOTAL_CS - seg.endCs) / CAM_TOTAL_CS;
+                const x1 = trackX + startPct * trackW;
+                const sw = (endPct - startPct) * trackW;
+
+                recordCanvasCtx.fillStyle = seg.type === 'run' ? '#f97316' : '#22c55e';
+                recordCanvasCtx.beginPath();
+                if (recordCanvasCtx.roundRect) {
+                    recordCanvasCtx.roundRect(x1, trackY, sw, trackH, 4);
+                } else {
+                    recordCanvasCtx.rect(x1, trackY, sw, trackH);
+                }
+                recordCanvasCtx.fill();
+            });
+
+            // 現在進行中のセグメントを描画
+            if (camIsRunning) {
+                const startPct = (CAM_TOTAL_CS - camCurrentSegmentStart) / CAM_TOTAL_CS;
+                const endPct = (CAM_TOTAL_CS - camTimeLeft) / CAM_TOTAL_CS;
+                const x1 = trackX + startPct * trackW;
+                const sw = (endPct - startPct) * trackW;
+
+                recordCanvasCtx.fillStyle = camIsExchange ? '#22c55e' : '#f97316';
+                recordCanvasCtx.beginPath();
+                if (recordCanvasCtx.roundRect) {
+                    recordCanvasCtx.roundRect(x1, trackY, sw, trackH, 4);
+                } else {
+                    recordCanvasCtx.rect(x1, trackY, sw, trackH);
+                }
+                recordCanvasCtx.fill();
+            }
+
+            // テキストラベルの描画
+            recordCanvasCtx.font = 'bold 12px sans-serif';
+            recordCanvasCtx.fillStyle = '#ffffff';
+            recordCanvasCtx.textBaseline = 'middle';
+
+            // 左側: 0:00
+            recordCanvasCtx.textAlign = 'left';
+            recordCanvasCtx.fillText('0:00', trackX, h - 35);
+
+            // 右側: 2:30
+            recordCanvasCtx.textAlign = 'right';
+            recordCanvasCtx.fillText('2:30', trackX + trackW, h - 35);
+
+            // 中央: 残り時間
+            recordCanvasCtx.textAlign = 'center';
+            recordCanvasCtx.fillStyle = '#f97316'; // オレンジ
+            recordCanvasCtx.fillText('残り ' + camFormatTime(camTimeLeft), trackX + trackW / 2, h - 35);
+        }
+
+        // 次フレームのループ
+        recordAnimationId = requestAnimationFrame(drawRecordFrame);
+    }
+
+    // ======================================
+    // 録画ボタン
+    // ======================================
+    camRecordBtn.addEventListener('click', () => {
+        if (!cameraStream) return;
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            // 停止して保存
+            mediaRecorder.stop();
+        } else {
+            // 録画開始 — MP4優先、未対応の場合はWebMにフォールバック
+            recordedChunks = [];
+            const mp4Types = [
+                'video/mp4;codecs=avc1,mp4a.40.2',
+                'video/mp4;codecs=h264',
+                'video/mp4'
+            ];
+            const webmTypes = [
+                'video/webm;codecs=vp9,opus',
+                'video/webm;codecs=vp8,opus',
+                'video/webm'
+            ];
+            let selectedMime = '';
+            let fileExt = 'webm';
+            for (const t of mp4Types) {
+                if (MediaRecorder.isTypeSupported(t)) {
+                    selectedMime = t;
+                    fileExt = 'mp4';
+                    break;
+                }
+            }
+            if (!selectedMime) {
+                for (const t of webmTypes) {
+                    if (MediaRecorder.isTypeSupported(t)) {
+                        selectedMime = t;
+                        fileExt = 'mp4';
+                        break;
+                    }
+                }
+            }
+
+            // 「バーあり」がアクティブな場合はキャンバスからキャプチャしたストリームを使用
+            const showBar = camTabOn.getAttribute('data-state') === 'active';
+            let recordStream = cameraStream;
+
+            if (showBar) {
+                // 録画用の臨時キャンバスを作成
+                recordCanvas = document.createElement('canvas');
+                // ビデオ解像度を取得して合わせる（未取得時は1280x720デフォルト）
+                recordCanvas.width = videoElement.videoWidth || 1280;
+                recordCanvas.height = videoElement.videoHeight || 720;
+                recordCanvasCtx = recordCanvas.getContext('2d');
+
+                // キャンバス描画ループ開始
+                drawRecordFrame();
+
+                // キャンバスからキャプチャしたストリームを作成 (30fps)
+                recordStream = recordCanvas.captureStream(30);
+
+                // カメラストリームのオーディオトラック（マイク音声）をキャンバスストリームに追加
+                const audioTracks = cameraStream.getAudioTracks();
+                audioTracks.forEach(track => recordStream.addTrack(track));
+            }
+
+            try {
+                mediaRecorder = selectedMime
+                    ? new MediaRecorder(recordStream, { mimeType: selectedMime })
+                    : new MediaRecorder(recordStream);
+            } catch (e) {
+                mediaRecorder = new MediaRecorder(recordStream);
+            }
+
+            mediaRecorder.ondataavailable = e => {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+            mediaRecorder.onstop = () => {
+                const blobType = mediaRecorder.mimeType || 'video/mp4';
+                const blob = new Blob(recordedChunks, { type: blobType });
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement('a');
+                a.href     = url;
+                a.download = `FLL_Video_${Date.now()}.${fileExt}`;
+                a.click();
+                URL.revokeObjectURL(url);
+                camRecordBtn.classList.remove('recording');
+                camRecIndicator.classList.remove('active');
+                // Re-enable tab switcher after recording finishes
+                camTabList.classList.remove('disabled');
+
+                // キャンバスループのクリーンアップ
+                if (recordAnimationId) {
+                    cancelAnimationFrame(recordAnimationId);
+                    recordAnimationId = null;
+                }
+                recordCanvas = null;
+                recordCanvasCtx = null;
+            };
+            mediaRecorder.start();
+            camRecordBtn.classList.add('recording');
+            camRecIndicator.classList.add('active');
+            // Disable tab switcher while recording is active
+            camTabList.classList.add('disabled');
+        }
+    });
+
+    // ======================================
+    // カメラ専用タイマー
+    // ======================================
+    function camFormatTime(cs) {
+        const totalSec = Math.floor(cs / 100);
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function camUpdateTimerDisplay() {
+        camTimerOverlay.textContent = camFormatTime(camTimeLeft);
+        camRemaining.textContent    = camFormatTime(camTimeLeft);
+    }
+
+    function camRenderTimeline() {
+        camTimelineTrack.innerHTML = '';
+        // 完了済みセグメント
+        camSegments.forEach(seg => {
+            const durationCs = seg.startCs - seg.endCs; // startCs > endCs (countdown)
+            const widthPct   = (durationCs / CAM_TOTAL_CS) * 100;
+            const div = document.createElement('div');
+            div.className = `tl-segment ${seg.type}`;
+            div.style.width = `${widthPct}%`;
+            camTimelineTrack.appendChild(div);
+        });
+        // 現在進行中のセグメント
+        if (camIsRunning) {
+            const durationCs = camCurrentSegmentStart - camTimeLeft;
+            if (durationCs > 0) {
+                const widthPct = (durationCs / CAM_TOTAL_CS) * 100;
+                const div = document.createElement('div');
+                div.className = `tl-segment ${camIsExchange ? 'exchange' : 'run'}`;
+                div.style.width = `${widthPct}%`;
+                camTimelineTrack.appendChild(div);
+            }
+        }
+    }
+
+    function camTick() {
+        const elapsed   = Date.now() - camStartStamp;
+        const elapsedCs = Math.floor(elapsed / 10);
+        camTimeLeft     = camLeftAtStart - elapsedCs;
+
+        if (camTimeLeft <= 0) {
+            camTimeLeft = 0;
+            clearInterval(camTimerInterval);
+            camTimerInterval = null;
+            camIsRunning = false;
+            // 最終セグメントを確定
+            camCommitSegment();
+            camUpdateTimerDisplay();
+            camRenderTimeline();
+            camStartStopBtn.classList.remove('running');
+            camStartLabel.textContent = 'スタート';
+            camExchangeBtn.disabled = true;
+            alert('時間切れです！');
+            return;
+        }
+        camUpdateTimerDisplay();
+        camRenderTimeline();
+    }
+
+    function camCommitSegment() {
+        const durationCs = camCurrentSegmentStart - camTimeLeft;
+        if (durationCs > 0) {
+            camSegments.push({
+                type: camIsExchange ? 'exchange' : 'run',
+                startCs: camCurrentSegmentStart,
+                endCs: camTimeLeft
+            });
+        }
+        camCurrentSegmentStart = camTimeLeft;
+    }
+
+    // スタート/ストップ
+    camStartStopBtn.addEventListener('click', () => {
+        if (!camIsRunning) {
+            // スタート
+            if (camTimeLeft <= 0) return;
+            camStartStamp  = Date.now();
+            camLeftAtStart = camTimeLeft;
+            camTimerInterval = setInterval(camTick, 30);
+            camIsRunning = true;
+            camStartStopBtn.classList.add('running');
+            camStartLabel.textContent = 'ストップ';
+            camExchangeBtn.disabled = false;
+            // 現在のセグメント開始を記録
+            camCurrentSegmentStart = camTimeLeft;
+        } else {
+            // ストップ
+            clearInterval(camTimerInterval);
+            camTimerInterval = null;
+            camIsRunning = false;
+            // セグメント確定
+            camCommitSegment();
+            camRenderTimeline();
+            camStartStopBtn.classList.remove('running');
+            camStartLabel.textContent = 'スタート';
+        }
+    });
+
+    // 交換ボタン
+    camExchangeBtn.addEventListener('click', () => {
+        if (!camIsRunning) return;
+        // 現在のセグメントを確定
+        camCommitSegment();
+        // Run ↔ Exchange を切り替え
+        camIsExchange = !camIsExchange;
+        camExchangeLbl.textContent = camIsExchange ? '走行' : '交換';
+        if (camIsExchange) {
+            camExchangeBtn.classList.add('is-run');
+        } else {
+            camExchangeBtn.classList.remove('is-run');
+        }
+        camRenderTimeline();
+    });
+
+    // リセット
+    camResetBtn.addEventListener('click', () => {
+        if (camTimerInterval) clearInterval(camTimerInterval);
+        camTimerInterval = null;
+        camIsRunning     = false;
+        camTimeLeft      = CAM_TOTAL_CS;
+        camSegments      = [];
+        camCurrentSegmentStart = CAM_TOTAL_CS;
+        camIsExchange    = false;
+        camRunCount      = 0;
+        camExchangeCount = 0;
+        camStartStopBtn.classList.remove('running');
+        camStartLabel.textContent   = 'スタート';
+        camExchangeLbl.textContent  = '交換';
+        camExchangeBtn.classList.remove('is-run');
+        camExchangeBtn.disabled     = true;
+        camUpdateTimerDisplay();
+        camRenderTimeline();
+    });
+
+    // 初期表示
+    camUpdateTimerDisplay();
+    camRenderTimeline();
+
+    // ======================================
+    // メインタイマー 初期化
+    // ======================================
+
     function updateInputs(cs) {
         const totalSec = Math.floor(cs / 100);
         const mins = Math.floor(totalSec / 60);
@@ -645,33 +1181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // デバイス切り替えロジック
-    const smartphoneBtn = document.getElementById('device-smartphone');
-    const tabletBtn = document.getElementById('device-tablet');
-    const pcBtn = document.getElementById('device-pc');
-
-    function setDeviceMode(mode) {
-        document.body.classList.remove('mode-smartphone', 'mode-tablet', 'mode-pc');
-        
-        smartphoneBtn.classList.remove('active');
-        tabletBtn.classList.remove('active');
-        pcBtn.classList.remove('active');
-        
-        if (mode === 'smartphone') {
-            document.body.classList.add('mode-smartphone');
-            smartphoneBtn.classList.add('active');
-        } else if (mode === 'tablet') {
-            document.body.classList.add('mode-tablet');
-            tabletBtn.classList.add('active');
-        } else {
-            document.body.classList.add('mode-pc');
-            pcBtn.classList.add('active');
-        }
-    }
-
-    smartphoneBtn.addEventListener('click', () => setDeviceMode('smartphone'));
-    tabletBtn.addEventListener('click', () => setDeviceMode('tablet'));
-    pcBtn.addEventListener('click', () => setDeviceMode('pc'));
+    // --- カメラ機能（旧コード削除済み） ---
 
     updateInputs(timeLeft);
     drawTimerCircle(1);

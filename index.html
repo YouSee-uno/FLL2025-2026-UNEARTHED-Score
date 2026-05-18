@@ -13,22 +13,15 @@
         <header>
             <div class="header-top">
                 <h1><span class="logo-blue">F</span><span class="logo-red">L</span><span class="logo-blue">L</span> Challenge Score App by Crefus</h1>
-                <div class="device-toggle-group" role="group" aria-label="表示デバイスの切り替え">
-                    <button id="device-smartphone" class="device-btn" title="スマートフォン表示">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-                    </button>
-                    <button id="device-tablet" class="device-btn" title="タブレット表示">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2" ry="2"></rect><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                    </button>
-                    <button id="device-pc" class="device-btn active" title="PC表示">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="12" rx="2"></rect><line x1="12" y1="15" x2="12" y2="21"></line><line x1="8" y1="21" x2="16" y2="21"></line></svg>
-                    </button>
-                </div>
             </div>
             <nav class="tab-bar">
                 <button id="timerTab" class="tab-button active">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="tab-icon"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                     <span>ストップウォッチ</span>
+                </button>
+                <button id="cameraTab" class="tab-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="tab-icon"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                    <span>カメラ</span>
                 </button>
                 <button id="scoreTab" class="tab-button">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="tab-icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="9 11 11 13 15 9"></polyline></svg>
@@ -72,6 +65,91 @@
                 </table>
                 <ul id="lap-times">
                 </ul>
+            </div>
+        </section>
+
+        <section id="camera-section" class="content cam-fullscreen">
+            <!-- Landscape-only warning overlay -->
+            <div class="cam-orientation-warning" id="camOrientationWarning">
+                <div class="cam-orientation-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                </div>
+                <p>📱 横向きにしてください</p>
+            </div>
+
+            <!-- Full-screen video background -->
+            <video id="camera-stream" autoplay playsinline muted></video>
+
+            <!-- Recording indicator -->
+            <div class="cam-rec-indicator" id="camRecIndicator">
+                <span class="cam-rec-dot"></span>
+                <span>REC</span>
+            </div>
+
+            <!-- Timer overlay (top-left) -->
+            <div class="cam-timer-overlay" id="camTimerOverlay">2:30</div>
+
+            <!-- Camera selector (top-right) -->
+            <div class="cam-selector-overlay">
+                <select id="camera-select" class="cam-glass-select">
+                    <option value="">カメラ読み込み中...</option>
+                </select>
+            </div>
+
+            <!-- Right-side round control buttons -->
+            <div class="cam-controls-col">
+                <!-- Record button -->
+                <button id="camRecordButton" class="cam-round-btn cam-btn-record" title="録画">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
+                </button>
+                <div class="cam-btn-label">録画</div>
+
+                <!-- Start/Stop button -->
+                <button id="camStartStopButton" class="cam-round-btn cam-btn-start" title="スタート">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+                <div class="cam-btn-label" id="camStartLabel">スタート</div>
+
+                <!-- Exchange button -->
+                <button id="camExchangeButton" class="cam-round-btn cam-btn-exchange" title="交換" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                </button>
+                <div class="cam-btn-label" id="camExchangeLabel">交換</div>
+
+                <!-- Reset button -->
+                <button id="camResetButton" class="cam-round-btn cam-btn-reset" title="リセット">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.49"/></svg>
+                </button>
+                <div class="cam-btn-label">リセット</div>
+            </div>
+
+            <!-- Timeline toggle tabs (shadcn/Radix style) -->
+            <div class="cam-tab-switcher" id="camTabSwitcher">
+                <div class="cam-tab-list" role="tablist" aria-label="タイムライン設定">
+                    <button class="cam-tab-trigger active" id="camTabOn" role="tab" data-state="active">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="3" rx="1"/><rect x="3" y="10" width="12" height="3" rx="1"/><rect x="3" y="17" width="7" height="3" rx="1"/></svg>
+                        バーあり
+                    </button>
+                    <button class="cam-tab-trigger" id="camTabOff" role="tab" data-state="inactive">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        バーなし
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom timeline bar -->
+            <div class="cam-timeline-wrapper" id="camTimelineWrapper">
+                <div class="cam-timeline-track" id="camTimelineTrack">
+                    <!-- Filled segments rendered by JS -->
+                </div>
+                <div class="cam-timeline-label">
+                    <span>0:00</span>
+                    <span>残り <strong id="camTimelineRemaining">2:30</strong></span>
+                    <span>2:30</span>
+                </div>
             </div>
         </section>
 
