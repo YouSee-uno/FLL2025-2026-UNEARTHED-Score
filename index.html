@@ -42,7 +42,7 @@
         <section id="timer-section" class="content active">
             <h2>ストップウォッチ</h2>
             <div class="timer-display">
-                <canvas id="timer-circle" width="250" height="250"></canvas>
+                <canvas id="timer-circle" width="300" height="300"></canvas>
                 <div id="time-text">
                     <input type="number" id="minutes-input" value="2" min="0" max="99">
                     :
@@ -146,12 +146,21 @@
 
             <!-- Bottom timeline bar -->
             <div class="cam-timeline-wrapper" id="camTimelineWrapper">
+                <div class="cam-timeline-top-labels" id="camTimelineTopLabels">
+                    <!-- Segment labels (durations) rendered by JS -->
+                </div>
                 <div class="cam-timeline-track" id="camTimelineTrack">
                     <!-- Filled segments rendered by JS -->
                 </div>
                 <div class="cam-timeline-label">
                     <span>0:00</span>
-                    <span>残り <strong id="camTimelineRemaining">2:30</strong></span>
+                    <span class="cam-timeline-summary">
+                        <span class="cam-summary-remaining">残り <strong id="camTimelineRemaining">2:30</strong></span>
+                        <span class="cam-summary-divider">|</span>
+                        <span class="cam-summary-run">Run合計 <strong id="camTimelineRunTotal">0.0</strong>秒</span>
+                        <span class="cam-summary-divider">|</span>
+                        <span class="cam-summary-exchange">交換合計 <strong id="camTimelineExchangeTotal">0.0</strong>秒</span>
+                    </span>
                     <span>2:30</span>
                 </div>
             </div>

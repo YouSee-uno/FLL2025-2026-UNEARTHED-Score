@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let lastLapTime = totalTime;
     let totalRunTime = 0;
     let totalExchangeTime = 0;
+    let stopwatchSegments = [];
     let timerStartStamp = null;
     let timerLeftAtStart = null;
 
@@ -428,7 +429,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const camTimerOverlay = document.getElementById('camTimerOverlay');
     const camRecIndicator = document.getElementById('camRecIndicator');
     const camTimelineTrack= document.getElementById('camTimelineTrack');
+    const camTimelineTopLabels = document.getElementById('camTimelineTopLabels');
     const camRemaining    = document.getElementById('camTimelineRemaining');
+    const camTimelineRunTotal = document.getElementById('camTimelineRunTotal');
+    const camTimelineExchangeTotal = document.getElementById('camTimelineExchangeTotal');
     const camOrientWarn   = document.getElementById('camOrientationWarning');
     const camTabList       = document.querySelector('.cam-tab-list');
     const camTabOn         = document.getElementById('camTabOn');
@@ -651,33 +655,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 2. 「バーあり」のときのみ、タイムラインバーを動画内に重ねて描画
         const showBar = camTabOn.getAttribute('data-state') === 'active';
         if (showBar) {
-            // 最下部の黒背景帯を描画
-            const containerH = 45;
+            // 最下部の黒背景帯を描画 (少し高さを高くして合計秒数と上部秒数を収める)
+            const containerH = 80;
             recordCanvasCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
             recordCanvasCtx.fillRect(0, h - containerH, w, containerH);
 
             // タイムラインのサイズ設定
             const trackX = 30;
             const trackW = w - 60;
-            const trackH = 8;
-            const trackY = h - 24;
+            const trackH = 16; // 太さ200% (元は8px)
+            const trackY = h - 38; // 配置位置の調整
 
             // タイムラインの背景トラックを描画
             recordCanvasCtx.fillStyle = 'rgba(255, 255, 255, 0.25)';
             recordCanvasCtx.beginPath();
             if (recordCanvasCtx.roundRect) {
-                recordCanvasCtx.roundRect(trackX, trackY, trackW, trackH, 4);
+                recordCanvasCtx.roundRect(trackX, trackY, trackW, trackH, 6);
             } else {
                 recordCanvasCtx.rect(trackX, trackY, trackW, trackH);
             }
             recordCanvasCtx.fill();
 
+            let canvasRunCs = 0;
+            let canvasExchangeCs = 0;
+
             // 完了済みセグメントを描画
             camSegments.forEach(seg => {
+                const durationCs = seg.startCs - seg.endCs;
                 const startPct = (CAM_TOTAL_CS - seg.startCs) / CAM_TOTAL_CS;
                 const endPct = (CAM_TOTAL_CS - seg.endCs) / CAM_TOTAL_CS;
                 const x1 = trackX + startPct * trackW;
                 const sw = (endPct - startPct) * trackW;
+
+                if (seg.type === 'run') canvasRunCs += durationCs;
+                else canvasExchangeCs += durationCs;
 
                 recordCanvasCtx.fillStyle = seg.type === 'run' ? '#f97316' : '#22c55e';
                 recordCanvasCtx.beginPath();
@@ -687,23 +698,52 @@ document.addEventListener('DOMContentLoaded', async () => {
                     recordCanvasCtx.rect(x1, trackY, sw, trackH);
                 }
                 recordCanvasCtx.fill();
+
+                // 各区間の秒数をバーの上に描画 (十分な幅がある場合のみ)
+                if (sw > 22) {
+                    recordCanvasCtx.font = 'bold 10px sans-serif';
+                    recordCanvasCtx.fillStyle = seg.type === 'run' ? '#ffd8a8' : '#b2f2bb';
+                    recordCanvasCtx.textAlign = 'center';
+                    recordCanvasCtx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+                    recordCanvasCtx.shadowBlur = 4;
+                    recordCanvasCtx.fillText((durationCs / 100).toFixed(1) + '秒', x1 + sw / 2, trackY - 6);
+                    recordCanvasCtx.shadowBlur = 0;
+                }
             });
 
             // 現在進行中のセグメントを描画
             if (camIsRunning) {
+                const durationCs = camCurrentSegmentStart - camTimeLeft;
                 const startPct = (CAM_TOTAL_CS - camCurrentSegmentStart) / CAM_TOTAL_CS;
                 const endPct = (CAM_TOTAL_CS - camTimeLeft) / CAM_TOTAL_CS;
                 const x1 = trackX + startPct * trackW;
                 const sw = (endPct - startPct) * trackW;
+                const type = camIsExchange ? 'exchange' : 'run';
 
-                recordCanvasCtx.fillStyle = camIsExchange ? '#22c55e' : '#f97316';
-                recordCanvasCtx.beginPath();
-                if (recordCanvasCtx.roundRect) {
-                    recordCanvasCtx.roundRect(x1, trackY, sw, trackH, 4);
-                } else {
-                    recordCanvasCtx.rect(x1, trackY, sw, trackH);
+                if (type === 'run') canvasRunCs += durationCs;
+                else canvasExchangeCs += durationCs;
+
+                if (durationCs > 0) {
+                    recordCanvasCtx.fillStyle = camIsExchange ? '#22c55e' : '#f97316';
+                    recordCanvasCtx.beginPath();
+                    if (recordCanvasCtx.roundRect) {
+                        recordCanvasCtx.roundRect(x1, trackY, sw, trackH, 4);
+                    } else {
+                        recordCanvasCtx.rect(x1, trackY, sw, trackH);
+                    }
+                    recordCanvasCtx.fill();
+
+                    // 現在進行中の秒数をバーの上に描画
+                    if (sw > 22) {
+                        recordCanvasCtx.font = 'bold 10px sans-serif';
+                        recordCanvasCtx.fillStyle = type === 'run' ? '#ffd8a8' : '#b2f2bb';
+                        recordCanvasCtx.textAlign = 'center';
+                        recordCanvasCtx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+                        recordCanvasCtx.shadowBlur = 4;
+                        recordCanvasCtx.fillText((durationCs / 100).toFixed(1) + '秒', x1 + sw / 2, trackY - 6);
+                        recordCanvasCtx.shadowBlur = 0;
+                    }
                 }
-                recordCanvasCtx.fill();
             }
 
             // テキストラベルの描画
@@ -713,16 +753,67 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 左側: 0:00
             recordCanvasCtx.textAlign = 'left';
-            recordCanvasCtx.fillText('0:00', trackX, h - 35);
+            recordCanvasCtx.fillText('0:00', trackX, h - 14);
 
             // 右側: 2:30
             recordCanvasCtx.textAlign = 'right';
-            recordCanvasCtx.fillText('2:30', trackX + trackW, h - 35);
+            recordCanvasCtx.fillText('2:30', trackX + trackW, h - 14);
 
-            // 中央: 残り時間
-            recordCanvasCtx.textAlign = 'center';
-            recordCanvasCtx.fillStyle = '#f97316'; // オレンジ
-            recordCanvasCtx.fillText('残り ' + camFormatTime(camTimeLeft), trackX + trackW / 2, h - 35);
+            // 中央: 残り時間 + Run合計 + 交換合計 (色分けして描画)
+            const runSec = (canvasRunCs / 100).toFixed(1);
+            const exchSec = (canvasExchangeCs / 100).toFixed(1);
+
+            const partRemaining = `残り ${camFormatTime(camTimeLeft)}`;
+            const divider = `  |  `;
+            const partRun = `Run合計 ${runSec}秒`;
+            const partExch = `交換合計 ${exchSec}秒`;
+
+            recordCanvasCtx.font = 'bold 11px sans-serif';
+            const wRemaining = recordCanvasCtx.measureText(partRemaining).width;
+            const wDivider   = recordCanvasCtx.measureText(divider).width;
+            const wRun       = recordCanvasCtx.measureText(partRun).width;
+            const wExch      = recordCanvasCtx.measureText(partExch).width;
+
+            const totalTextWidth = wRemaining + wDivider + wRun + wDivider + wExch;
+
+            // 背景に薄いカプセル風マスクを描画して視認性を上げる
+            recordCanvasCtx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+            recordCanvasCtx.beginPath();
+            if (recordCanvasCtx.roundRect) {
+                recordCanvasCtx.roundRect(trackX + trackW / 2 - totalTextWidth / 2 - 10, h - 23, totalTextWidth + 20, 18, 9);
+            } else {
+                recordCanvasCtx.rect(trackX + trackW / 2 - totalTextWidth / 2 - 10, h - 23, totalTextWidth + 20, 18);
+            }
+            recordCanvasCtx.fill();
+
+            // テキストを分割して色指定しながら描画
+            let currentX = trackX + trackW / 2 - totalTextWidth / 2;
+            recordCanvasCtx.textBaseline = 'middle';
+            recordCanvasCtx.textAlign = 'left';
+
+            // 1. 残り時間 (白色)
+            recordCanvasCtx.fillStyle = '#ffffff';
+            recordCanvasCtx.fillText(partRemaining, currentX, h - 14);
+            currentX += wRemaining;
+
+            // 2. 仕切り (不透明度を下げた白色)
+            recordCanvasCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            recordCanvasCtx.fillText(divider, currentX, h - 14);
+            currentX += wDivider;
+
+            // 3. Run合計 (オレンジ)
+            recordCanvasCtx.fillStyle = '#ffd8a8'; // 明るいオレンジ
+            recordCanvasCtx.fillText(partRun, currentX, h - 14);
+            currentX += wRun;
+
+            // 4. 仕切り (不透明度を下げた白色)
+            recordCanvasCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            recordCanvasCtx.fillText(divider, currentX, h - 14);
+            currentX += wDivider;
+
+            // 5. 交換合計 (グリーン)
+            recordCanvasCtx.fillStyle = '#b2f2bb'; // 明るいグリーン
+            recordCanvasCtx.fillText(partExch, currentX, h - 14);
         }
 
         // 次フレームのループ
@@ -850,25 +941,74 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function camRenderTimeline() {
         camTimelineTrack.innerHTML = '';
+        if (camTimelineTopLabels) camTimelineTopLabels.innerHTML = '';
+
+        let totalRunCs = 0;
+        let totalExchangeCs = 0;
+
         // 完了済みセグメント
         camSegments.forEach(seg => {
             const durationCs = seg.startCs - seg.endCs; // startCs > endCs (countdown)
             const widthPct   = (durationCs / CAM_TOTAL_CS) * 100;
+
+            if (seg.type === 'run') {
+                totalRunCs += durationCs;
+            } else {
+                totalExchangeCs += durationCs;
+            }
+
+            // 1. トラックセグメントを追加
             const div = document.createElement('div');
             div.className = `tl-segment ${seg.type}`;
             div.style.width = `${widthPct}%`;
             camTimelineTrack.appendChild(div);
+
+            // 2. 上部ラベルを追加
+            if (camTimelineTopLabels && durationCs > 0) {
+                const labelDiv = document.createElement('div');
+                labelDiv.className = `tl-top-label ${seg.type}`;
+                labelDiv.style.width = `${widthPct}%`;
+                labelDiv.innerHTML = `<span class="label-text">${(durationCs / 100).toFixed(1)}秒</span>`;
+                camTimelineTopLabels.appendChild(labelDiv);
+            }
         });
+
         // 現在進行中のセグメント
         if (camIsRunning) {
             const durationCs = camCurrentSegmentStart - camTimeLeft;
             if (durationCs > 0) {
                 const widthPct = (durationCs / CAM_TOTAL_CS) * 100;
+                const type = camIsExchange ? 'exchange' : 'run';
+
+                if (type === 'run') {
+                    totalRunCs += durationCs;
+                } else {
+                    totalExchangeCs += durationCs;
+                }
+
+                // 1. トラックセグメントを追加
                 const div = document.createElement('div');
-                div.className = `tl-segment ${camIsExchange ? 'exchange' : 'run'}`;
+                div.className = `tl-segment ${type}`;
                 div.style.width = `${widthPct}%`;
                 camTimelineTrack.appendChild(div);
+
+                // 2. 上部ラベルを追加
+                if (camTimelineTopLabels) {
+                    const labelDiv = document.createElement('div');
+                    labelDiv.className = `tl-top-label ${type}`;
+                    labelDiv.style.width = `${widthPct}%`;
+                    labelDiv.innerHTML = `<span class="label-text">${(durationCs / 100).toFixed(1)}秒</span>`;
+                    camTimelineTopLabels.appendChild(labelDiv);
+                }
             }
+        }
+
+        // 下部合計表示を更新
+        if (camTimelineRunTotal) {
+            camTimelineRunTotal.textContent = (totalRunCs / 100).toFixed(1);
+        }
+        if (camTimelineExchangeTotal) {
+            camTimelineExchangeTotal.textContent = (totalExchangeCs / 100).toFixed(1);
         }
     }
 
@@ -992,38 +1132,165 @@ document.addEventListener('DOMContentLoaded', async () => {
     function drawTimerCircle(progress) {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const radius = canvas.width / 2 - 20;
+        const radius = 105; // circle fits beautifully in 300x300 canvas
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        let currentColor = '#3b82f6';
-        if (progress > 0 && timeLeft <= 3000 && timeLeft > 0) {
-            const blinkOn = Math.floor(Date.now() / 500) % 2 === 0;
-            currentColor = blinkOn ? '#ef4444' : '#fca5a5';
-        }
-        timeText.style.color = currentColor;
-        minutesInput.style.color = currentColor;
-        secondsInput.style.color = currentColor;
-        centisecondsDisplay.style.color = currentColor;
-        
+        // 1. Draw base gray background circle
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.06)';
         ctx.lineWidth = 18;
         ctx.stroke();
 
-        if (progress > 0) {
+        // Helper: get angle from remaining time
+        function getAngle(csRemaining) {
+            const elapsedCs = totalTime - csRemaining;
+            return -0.5 * Math.PI + (2 * Math.PI * (elapsedCs / totalTime));
+        }
+
+        // 2. Draw completed segments clockwise
+        stopwatchSegments.forEach(seg => {
+            const startAngle = getAngle(seg.startCs);
+            const endAngle = getAngle(seg.endCs);
+            const durationCs = seg.startCs - seg.endCs;
+            const segmentColor = seg.type === 'run' ? '#f97316' : '#22c55e'; // orange / green
+
             ctx.beginPath();
-            const endAngle = -0.5 * Math.PI + (2 * Math.PI * progress);
-            ctx.arc(centerX, centerY, radius, -0.5 * Math.PI, endAngle);
-            ctx.strokeStyle = currentColor;
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.strokeStyle = segmentColor;
             ctx.lineWidth = 18;
             ctx.lineCap = 'butt';
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = currentColor;
+            ctx.stroke();
+
+            // Draw segment text (e.g. "12.3秒") outside the circle
+            if (durationCs > 100) { // only show if more than 1 second to avoid crowdedness
+                const midAngle = (startAngle + endAngle) / 2;
+                const textRadius = radius + 22;
+                const tx = centerX + Math.cos(midAngle) * textRadius;
+                const ty = centerY + Math.sin(midAngle) * textRadius;
+
+                ctx.save();
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Draw rounded capsule background for the badge
+                const labelText = (durationCs / 100).toFixed(1) + '秒';
+                const textWidth = ctx.measureText(labelText).width;
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                const cw = textWidth + 8;
+                const ch = 14;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(tx - cw / 2, ty - ch / 2, cw, ch, 4);
+                } else {
+                    ctx.rect(tx - cw / 2, ty - ch / 2, cw, ch);
+                }
+                ctx.fill();
+                
+                // Draw colored border around badge
+                ctx.strokeStyle = seg.type === 'run' ? 'rgba(249, 115, 22, 0.6)' : 'rgba(34, 197, 94, 0.6)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Draw text
+                ctx.fillStyle = seg.type === 'run' ? '#ffd8a8' : '#b2f2bb';
+                ctx.fillText(labelText, tx, ty);
+                ctx.restore();
+            }
+        });
+
+        // 3. Draw active segment clockwise (if running)
+        if (isRunning && lastLapTime > timeLeft) {
+            const startAngle = getAngle(lastLapTime);
+            const endAngle = getAngle(timeLeft);
+            const durationCs = lastLapTime - timeLeft;
+            const currentType = exchangeButton.textContent === '交換' ? 'run' : 'exchange';
+            const segmentColor = currentType === 'run' ? '#f97316' : '#22c55e';
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.strokeStyle = segmentColor;
+            ctx.lineWidth = 18;
+            ctx.lineCap = 'butt';
+            ctx.stroke();
+
+            // Draw active segment text outside
+            if (durationCs > 100) {
+                const midAngle = (startAngle + endAngle) / 2;
+                const textRadius = radius + 22;
+                const tx = centerX + Math.cos(midAngle) * textRadius;
+                const ty = centerY + Math.sin(midAngle) * textRadius;
+
+                ctx.save();
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                const labelText = (durationCs / 100).toFixed(1) + '秒';
+                const textWidth = ctx.measureText(labelText).width;
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                const cw = textWidth + 8;
+                const ch = 14;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(tx - cw / 2, ty - ch / 2, cw, ch, 4);
+                } else {
+                    ctx.rect(tx - cw / 2, ty - ch / 2, cw, ch);
+                }
+                ctx.fill();
+                
+                ctx.strokeStyle = currentType === 'run' ? 'rgba(249, 115, 22, 0.6)' : 'rgba(34, 197, 94, 0.6)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                ctx.fillStyle = currentType === 'run' ? '#ffd8a8' : '#b2f2bb';
+                ctx.fillText(labelText, tx, ty);
+                ctx.restore();
+            }
+        }
+
+        // 4. Draw remaining time (future time) in blue or blinking red/pink
+        let remainingColor = '#3b82f6';
+        if (progress > 0 && timeLeft <= 3000 && timeLeft > 0) {
+            const blinkOn = Math.floor(Date.now() / 500) % 2 === 0;
+            remainingColor = blinkOn ? '#ef4444' : '#fca5a5';
+        }
+
+        if (timeLeft > 0) {
+            const startAngle = getAngle(timeLeft);
+            const endAngle = 1.5 * Math.PI;
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.strokeStyle = remainingColor;
+            ctx.lineWidth = 18;
+            ctx.lineCap = 'butt';
+            
+            // Add a subtle outer glow to the remaining time arc for rich aesthetics
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = remainingColor;
             ctx.stroke();
             ctx.shadowBlur = 0;
         }
+
+        // 5. Update input/text colors in the center to match current segment color or warning color
+        let activeColor = '#3b82f6';
+        if (timeLeft <= 3000 && timeLeft > 0) {
+            const blinkOn = Math.floor(Date.now() / 500) % 2 === 0;
+            activeColor = blinkOn ? '#ef4444' : '#fca5a5';
+        } else if (isRunning) {
+            const currentType = exchangeButton.textContent === '交換' ? 'run' : 'exchange';
+            activeColor = currentType === 'run' ? '#f97316' : '#22c55e';
+        }
+        
+        timeText.style.color = activeColor;
+        minutesInput.style.color = activeColor;
+        secondsInput.style.color = activeColor;
+        centisecondsDisplay.style.color = activeColor;
     }
 
     function updateTimer() {
@@ -1059,19 +1326,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     function recordFinalSegment() {
         if (lastLapTime > timeLeft) {
             const timeDiff = lastLapTime - timeLeft;
-            lastLapTime = timeLeft;
             
             if (exchangeButton.textContent === '交換') {
                 runCount++;
                 addLapTime(`${runCount} Run`, timeDiff, true);
                 totalRunTime += timeDiff;
                 totalRunTimeDisplay.textContent = (totalRunTime / 100).toFixed(2);
+                
+                stopwatchSegments.push({
+                    type: 'run',
+                    startCs: lastLapTime,
+                    endCs: timeLeft
+                });
             } else {
                 exchangeCount++;
                 addLapTime(`交換 ${exchangeCount}回目`, timeDiff, false);
                 totalExchangeTime += timeDiff;
                 totalExchangeTimeDisplay.textContent = (totalExchangeTime / 100).toFixed(2);
+                
+                stopwatchSegments.push({
+                    type: 'exchange',
+                    startCs: lastLapTime,
+                    endCs: timeLeft
+                });
             }
+            lastLapTime = timeLeft;
         }
     }
 
@@ -1106,21 +1385,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     exchangeButton.addEventListener('click', () => {
         if (isRunning) {
             const timeDiff = lastLapTime - timeLeft;
-            lastLapTime = timeLeft;
             
             if (exchangeButton.textContent === '交換') {
                 runCount++;
                 addLapTime(`${runCount} Run`, timeDiff, true);
                 totalRunTime += timeDiff;
                 totalRunTimeDisplay.textContent = (totalRunTime / 100).toFixed(2);
+                
+                stopwatchSegments.push({
+                    type: 'run',
+                    startCs: lastLapTime,
+                    endCs: timeLeft
+                });
+                
                 exchangeButton.textContent = '走行';
             } else {
                 exchangeCount++;
                 addLapTime(`交換 ${exchangeCount}回目`, timeDiff, false);
                 totalExchangeTime += timeDiff;
                 totalExchangeTimeDisplay.textContent = (totalExchangeTime / 100).toFixed(2);
+                
+                stopwatchSegments.push({
+                    type: 'exchange',
+                    startCs: lastLapTime,
+                    endCs: timeLeft
+                });
+                
                 exchangeButton.textContent = '交換';
             }
+            lastLapTime = timeLeft;
+            drawTimerCircle(timeLeft / totalTime); // Redraw immediately
         }
     });
 
@@ -1134,6 +1428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         lastLapTime = 15000;
         totalRunTime = 0;
         totalExchangeTime = 0;
+        stopwatchSegments = []; // Clear segments
         updateInputs(timeLeft);
         drawTimerCircle(1);
         startStopButton.textContent = 'スタート';
