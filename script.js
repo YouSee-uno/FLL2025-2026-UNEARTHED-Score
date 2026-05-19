@@ -655,22 +655,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 2. 「バーあり」のときのみ、タイムラインバーを動画内に重ねて描画
         const showBar = camTabOn.getAttribute('data-state') === 'active';
         if (showBar) {
+            // 解像度に応じたスケール係数の計算 (基準となる高さを 360px とする)
+            const scale = h / 360;
+
             // 最下部の黒背景帯を描画 (少し高さを高くして合計秒数と上部秒数を収める)
-            const containerH = 80;
+            const containerH = 80 * scale;
             recordCanvasCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
             recordCanvasCtx.fillRect(0, h - containerH, w, containerH);
 
             // タイムラインのサイズ設定
-            const trackX = 30;
-            const trackW = w - 60;
-            const trackH = 16; // 太さ200% (元は8px)
-            const trackY = h - 38; // 配置位置の調整
+            const trackX = 30 * scale;
+            const trackW = w - 60 * scale;
+            const trackH = 16 * scale; // 太さ200% (元は8px)
+            const trackY = h - 38 * scale; // 配置位置の調整
 
             // タイムラインの背景トラックを描画
             recordCanvasCtx.fillStyle = 'rgba(255, 255, 255, 0.25)';
             recordCanvasCtx.beginPath();
             if (recordCanvasCtx.roundRect) {
-                recordCanvasCtx.roundRect(trackX, trackY, trackW, trackH, 6);
+                recordCanvasCtx.roundRect(trackX, trackY, trackW, trackH, 6 * scale);
             } else {
                 recordCanvasCtx.rect(trackX, trackY, trackW, trackH);
             }
@@ -693,20 +696,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 recordCanvasCtx.fillStyle = seg.type === 'run' ? '#f97316' : '#22c55e';
                 recordCanvasCtx.beginPath();
                 if (recordCanvasCtx.roundRect) {
-                    recordCanvasCtx.roundRect(x1, trackY, sw, trackH, 4);
+                    recordCanvasCtx.roundRect(x1, trackY, sw, trackH, 4 * scale);
                 } else {
                     recordCanvasCtx.rect(x1, trackY, sw, trackH);
                 }
                 recordCanvasCtx.fill();
 
-                // 各区間の秒数をバーの上に描画 (十分な幅がある場合のみ)
-                if (sw > 22) {
-                    recordCanvasCtx.font = 'bold 10px sans-serif';
+                // 各区間の秒数をバーの上に描画 (十分な幅がある場合のみ。条件もスケールに合わせる)
+                if (sw > 14 * scale) {
+                    recordCanvasCtx.font = 'bold ' + Math.max(8, Math.round(10 * scale)) + 'px sans-serif';
                     recordCanvasCtx.fillStyle = seg.type === 'run' ? '#ffd8a8' : '#b2f2bb';
                     recordCanvasCtx.textAlign = 'center';
                     recordCanvasCtx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-                    recordCanvasCtx.shadowBlur = 4;
-                    recordCanvasCtx.fillText((durationCs / 100).toFixed(1) + '秒', x1 + sw / 2, trackY - 6);
+                    recordCanvasCtx.shadowBlur = 4 * scale;
+                    recordCanvasCtx.fillText((durationCs / 100).toFixed(1) + '秒', x1 + sw / 2, trackY - 6 * scale);
                     recordCanvasCtx.shadowBlur = 0;
                 }
             });
@@ -727,37 +730,37 @@ document.addEventListener('DOMContentLoaded', async () => {
                     recordCanvasCtx.fillStyle = camIsExchange ? '#22c55e' : '#f97316';
                     recordCanvasCtx.beginPath();
                     if (recordCanvasCtx.roundRect) {
-                        recordCanvasCtx.roundRect(x1, trackY, sw, trackH, 4);
+                        recordCanvasCtx.roundRect(x1, trackY, sw, trackH, 4 * scale);
                     } else {
                         recordCanvasCtx.rect(x1, trackY, sw, trackH);
                     }
                     recordCanvasCtx.fill();
 
                     // 現在進行中の秒数をバーの上に描画
-                    if (sw > 22) {
-                        recordCanvasCtx.font = 'bold 10px sans-serif';
+                    if (sw > 14 * scale) {
+                        recordCanvasCtx.font = 'bold ' + Math.max(8, Math.round(10 * scale)) + 'px sans-serif';
                         recordCanvasCtx.fillStyle = type === 'run' ? '#ffd8a8' : '#b2f2bb';
                         recordCanvasCtx.textAlign = 'center';
                         recordCanvasCtx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-                        recordCanvasCtx.shadowBlur = 4;
-                        recordCanvasCtx.fillText((durationCs / 100).toFixed(1) + '秒', x1 + sw / 2, trackY - 6);
+                        recordCanvasCtx.shadowBlur = 4 * scale;
+                        recordCanvasCtx.fillText((durationCs / 100).toFixed(1) + '秒', x1 + sw / 2, trackY - 6 * scale);
                         recordCanvasCtx.shadowBlur = 0;
                     }
                 }
             }
 
             // テキストラベルの描画
-            recordCanvasCtx.font = 'bold 12px sans-serif';
+            recordCanvasCtx.font = 'bold ' + Math.max(9, Math.round(12 * scale)) + 'px sans-serif';
             recordCanvasCtx.fillStyle = '#ffffff';
             recordCanvasCtx.textBaseline = 'middle';
 
             // 左側: 0:00
             recordCanvasCtx.textAlign = 'left';
-            recordCanvasCtx.fillText('0:00', trackX, h - 14);
+            recordCanvasCtx.fillText('0:00', trackX, h - 14 * scale);
 
             // 右側: 2:30
             recordCanvasCtx.textAlign = 'right';
-            recordCanvasCtx.fillText('2:30', trackX + trackW, h - 14);
+            recordCanvasCtx.fillText('2:30', trackX + trackW, h - 14 * scale);
 
             // 中央: 残り時間 + Run合計 + 交換合計 (色分けして描画)
             const runSec = (canvasRunCs / 100).toFixed(1);
@@ -768,7 +771,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const partRun = `Run合計 ${runSec}秒`;
             const partExch = `交換合計 ${exchSec}秒`;
 
-            recordCanvasCtx.font = 'bold 11px sans-serif';
+            recordCanvasCtx.font = 'bold ' + Math.max(9, Math.round(11 * scale)) + 'px sans-serif';
             const wRemaining = recordCanvasCtx.measureText(partRemaining).width;
             const wDivider   = recordCanvasCtx.measureText(divider).width;
             const wRun       = recordCanvasCtx.measureText(partRun).width;
@@ -780,9 +783,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             recordCanvasCtx.fillStyle = 'rgba(0, 0, 0, 0.55)';
             recordCanvasCtx.beginPath();
             if (recordCanvasCtx.roundRect) {
-                recordCanvasCtx.roundRect(trackX + trackW / 2 - totalTextWidth / 2 - 10, h - 23, totalTextWidth + 20, 18, 9);
+                recordCanvasCtx.roundRect(trackX + trackW / 2 - totalTextWidth / 2 - 10 * scale, h - 23 * scale, totalTextWidth + 20 * scale, 18 * scale, 9 * scale);
             } else {
-                recordCanvasCtx.rect(trackX + trackW / 2 - totalTextWidth / 2 - 10, h - 23, totalTextWidth + 20, 18);
+                recordCanvasCtx.rect(trackX + trackW / 2 - totalTextWidth / 2 - 10 * scale, h - 23 * scale, totalTextWidth + 20 * scale, 18 * scale);
             }
             recordCanvasCtx.fill();
 
@@ -793,27 +796,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 1. 残り時間 (白色)
             recordCanvasCtx.fillStyle = '#ffffff';
-            recordCanvasCtx.fillText(partRemaining, currentX, h - 14);
+            recordCanvasCtx.fillText(partRemaining, currentX, h - 14 * scale);
             currentX += wRemaining;
 
             // 2. 仕切り (不透明度を下げた白色)
             recordCanvasCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-            recordCanvasCtx.fillText(divider, currentX, h - 14);
+            recordCanvasCtx.fillText(divider, currentX, h - 14 * scale);
             currentX += wDivider;
 
             // 3. Run合計 (オレンジ)
             recordCanvasCtx.fillStyle = '#ffd8a8'; // 明るいオレンジ
-            recordCanvasCtx.fillText(partRun, currentX, h - 14);
+            recordCanvasCtx.fillText(partRun, currentX, h - 14 * scale);
             currentX += wRun;
 
             // 4. 仕切り (不透明度を下げた白色)
             recordCanvasCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-            recordCanvasCtx.fillText(divider, currentX, h - 14);
+            recordCanvasCtx.fillText(divider, currentX, h - 14 * scale);
             currentX += wDivider;
 
             // 5. 交換合計 (グリーン)
             recordCanvasCtx.fillStyle = '#b2f2bb'; // 明るいグリーン
-            recordCanvasCtx.fillText(partExch, currentX, h - 14);
+            recordCanvasCtx.fillText(partExch, currentX, h - 14 * scale);
         }
 
         // 次フレームのループ
