@@ -426,10 +426,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const camResetBtn     = document.getElementById('camResetButton');
     const camStartLabel   = document.getElementById('camStartLabel');
     const camExchangeLbl  = document.getElementById('camExchangeLabel');
-    const camTimerOverlay = document.getElementById('camTimerOverlay');
     const camRecIndicator = document.getElementById('camRecIndicator');
     const camTimelineTrack= document.getElementById('camTimelineTrack');
-    const camTimelineTopLabels = document.getElementById('camTimelineTopLabels');
     const camRemaining    = document.getElementById('camTimelineRemaining');
     const camTimelineRunTotal = document.getElementById('camTimelineRunTotal');
     const camTimelineExchangeTotal = document.getElementById('camTimelineExchangeTotal');
@@ -566,7 +564,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (err) {
             console.error('Camera access error:', err);
-            camTimerOverlay.textContent = 'カメラ権限なし';
+            if (camRemaining) camRemaining.textContent = 'カメラ権限なし';
         }
     }
 
@@ -938,14 +936,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function camUpdateTimerDisplay() {
-        camTimerOverlay.textContent = camFormatTime(camTimeLeft);
-        camRemaining.textContent    = camFormatTime(camTimeLeft);
+        camRemaining.textContent = camFormatTime(camTimeLeft);
     }
 
     function camRenderTimeline() {
         camTimelineTrack.innerHTML = '';
-        if (camTimelineTopLabels) camTimelineTopLabels.innerHTML = '';
-
         let totalRunCs = 0;
         let totalExchangeCs = 0;
 
@@ -960,20 +955,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 totalExchangeCs += durationCs;
             }
 
-            // 1. トラックセグメントを追加
             const div = document.createElement('div');
             div.className = `tl-segment ${seg.type}`;
             div.style.width = `${widthPct}%`;
-            camTimelineTrack.appendChild(div);
 
-            // 2. 上部ラベルを追加
-            if (camTimelineTopLabels && durationCs > 0) {
-                const labelDiv = document.createElement('div');
-                labelDiv.className = `tl-top-label ${seg.type}`;
-                labelDiv.style.width = `${widthPct}%`;
-                labelDiv.innerHTML = `<span class="label-text">${(durationCs / 100).toFixed(1)}秒</span>`;
-                camTimelineTopLabels.appendChild(labelDiv);
+            if (durationCs > 0) {
+                const label = document.createElement('span');
+                label.className = 'tl-seg-label';
+                label.textContent = `${(durationCs / 100).toFixed(1)}秒`;
+                div.appendChild(label);
             }
+
+            camTimelineTrack.appendChild(div);
         });
 
         // 現在進行中のセグメント
@@ -989,20 +982,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     totalExchangeCs += durationCs;
                 }
 
-                // 1. トラックセグメントを追加
                 const div = document.createElement('div');
                 div.className = `tl-segment ${type}`;
                 div.style.width = `${widthPct}%`;
-                camTimelineTrack.appendChild(div);
 
-                // 2. 上部ラベルを追加
-                if (camTimelineTopLabels) {
-                    const labelDiv = document.createElement('div');
-                    labelDiv.className = `tl-top-label ${type}`;
-                    labelDiv.style.width = `${widthPct}%`;
-                    labelDiv.innerHTML = `<span class="label-text">${(durationCs / 100).toFixed(1)}秒</span>`;
-                    camTimelineTopLabels.appendChild(labelDiv);
-                }
+                const label = document.createElement('span');
+                label.className = 'tl-seg-label';
+                label.textContent = `${(durationCs / 100).toFixed(1)}秒`;
+                div.appendChild(label);
+
+                camTimelineTrack.appendChild(div);
             }
         }
 
