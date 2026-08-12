@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FLL Challenge Score App by Crefus</title>
-    <link rel="stylesheet" href="style.css?v=1.0.4">
+    <link rel="stylesheet" href="style.css?v=1.0.5">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=BIZ+UD+Gothic&display=swap" rel="stylesheet">
@@ -27,6 +27,14 @@
                 <button id="scoreTab" class="tab-button">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="tab-icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="9 11 11 13 15 9"></polyline></svg>
                     <span>スコア集計</span>
+                </button>
+                <button id="futureTab" class="edition-link edition-link-future">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="9 11 11 13 15 9"></polyline></svg>
+                    <span>Future</span>
+                </button>
+                <button id="foundersTab" class="edition-link edition-link-founders">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="9 11 11 13 15 9"></polyline></svg>
+                    <span>Founders</span>
                 </button>
                 <button id="historyTab" class="tab-button">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="tab-icon"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path><path d="M12 2a6 6 0 0 0-6 6v5a6 6 0 0 0 6 6 6 6 0 0 0 6-6V8a6 6 0 0 0-6-6z"></path></svg>
@@ -175,6 +183,14 @@
             </div>
         </section>
 
+        <section id="future-section" class="content edition-content">
+            <iframe id="futureFrame" class="edition-frame" data-src="Future%20Score%20BIOGLOW/index.html" title="BIOGLOW Future Edition 得点計算"></iframe>
+        </section>
+
+        <section id="founders-section" class="content edition-content">
+            <iframe id="foundersFrame" class="edition-frame" data-src="Founders%20Score%20BIOGLOW/index.html" title="BIOGLOW Founders Edition 得点計算"></iframe>
+        </section>
+
         <section id="history-section" class="content">
             <h2>結果</h2>
             <div class="saved-scores-container">
@@ -185,6 +201,6 @@
     </main>
     </div>
 
-    <script src="script.js?v=1.0.4"></script>
+    <script src="script.js?v=1.0.5"></script>
 </body>
 </html>

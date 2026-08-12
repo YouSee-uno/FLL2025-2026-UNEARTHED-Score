@@ -200,11 +200,80 @@ header h1 .logo-red {
     flex-direction: column;
 }
 
+/* --- Edition Tabs (タブバー内 / BIOGLOW 得点計算) --- */
+.edition-link {
+    align-self: center;
+    font-family: 'BIZ UDGothic', 'BIZ UD Gothic', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 999px;
+    border: 1.5px solid transparent;
+    transition: color var(--transition), background var(--transition),
+                border-color var(--transition), transform var(--transition);
+}
+
+.edition-link:hover {
+    transform: translateY(-1px);
+}
+
+.edition-link-future {
+    color: var(--accent-dark);
+    background: var(--accent-light);
+    border-color: rgba(59, 130, 246, 0.35);
+}
+
+.edition-link-future:hover,
+.edition-link-future.active {
+    color: #fff;
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.edition-link-founders {
+    color: #c2410c;
+    background: var(--orange-light);
+    border-color: rgba(249, 115, 22, 0.35);
+}
+
+.edition-link-founders:hover,
+.edition-link-founders.active {
+    color: #fff;
+    background: var(--orange);
+    border-color: var(--orange);
+}
+
+/* --- Edition Content (iframe で各得点計算ページを表示) --- */
+.edition-content {
+    padding: 0;
+    max-width: none;
+}
+
+.edition-frame {
+    display: block;
+    width: 100%;
+    height: calc(100vh - var(--header-height, 104px));
+    border: none;
+    background: #fff;
+}
+
+.header-collapsed-mode .edition-frame {
+    height: 100vh;
+}
+
 /* --- Tab Bar --- */
 .tab-bar {
     display: flex;
     justify-content: center;
     gap: 4px;
+    flex-wrap: wrap;
 }
 
 .tab-button {
@@ -1306,6 +1375,12 @@ main {
 
     header h1 {
         font-size: 1.1rem;
+    }
+
+    .edition-link {
+        padding: 5px 12px;
+        font-size: 12px;
+        gap: 4px;
     }
 }
 

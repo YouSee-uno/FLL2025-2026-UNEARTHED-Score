@@ -4,10 +4,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cameraTab = document.getElementById('cameraTab');
     const scoreTab = document.getElementById('scoreTab');
     const historyTab = document.getElementById('historyTab');
+    const futureTab = document.getElementById('futureTab');
+    const foundersTab = document.getElementById('foundersTab');
     const timerSection = document.getElementById('timer-section');
     const cameraSection = document.getElementById('camera-section');
     const scoreSection = document.getElementById('score-section');
     const historySection = document.getElementById('history-section');
+    const futureSection = document.getElementById('future-section');
+    const foundersSection = document.getElementById('founders-section');
 
     const startStopButton = document.getElementById('startStopButton');
     const exchangeButton = document.getElementById('exchangeButton');
@@ -488,27 +492,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // タブとセクションの対応（追加時はここに1行足すだけでよい）
+    const tabPairs = [
+        { tab: timerTab, section: timerSection },
+        { tab: cameraTab, section: cameraSection },
+        { tab: scoreTab, section: scoreSection },
+        { tab: futureTab, section: futureSection },
+        { tab: foundersTab, section: foundersSection },
+        { tab: historyTab, section: historySection }
+    ];
+
+    // 指定タブだけを active にし、他はすべて解除する
+    function activateTab(targetTab, targetSection) {
+        tabPairs.forEach(({ tab, section }) => {
+            tab.classList.toggle('active', tab === targetTab);
+            section.classList.toggle('active', section === targetSection);
+        });
+    }
+
+    // iframe は初回表示時に読み込む（初期表示を軽くするため）
+    function loadEditionFrame(section) {
+        const frame = section.querySelector('iframe[data-src]');
+        if (frame) {
+            frame.src = frame.dataset.src;
+            frame.removeAttribute('data-src');
+        }
+    }
+
     timerTab.addEventListener('click', () => {
         stopCameraStream();
-        timerTab.classList.add('active');
-        cameraTab.classList.remove('active');
-        scoreTab.classList.remove('active');
-        historyTab.classList.remove('active');
-        timerSection.classList.add('active');
-        cameraSection.classList.remove('active');
-        scoreSection.classList.remove('active');
-        historySection.classList.remove('active');
+        activateTab(timerTab, timerSection);
     });
 
     cameraTab.addEventListener('click', () => {
-        cameraTab.classList.add('active');
-        timerTab.classList.remove('active');
-        scoreTab.classList.remove('active');
-        historyTab.classList.remove('active');
-        cameraSection.classList.add('active');
-        timerSection.classList.remove('active');
-        scoreSection.classList.remove('active');
-        historySection.classList.remove('active');
+        activateTab(cameraTab, cameraSection);
         // カメラタブを開いたら自動でカメラ起動
         initCameraAndDevices();
         // 向きをチェック
@@ -517,27 +534,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     scoreTab.addEventListener('click', () => {
         stopCameraStream();
-        scoreTab.classList.add('active');
-        timerTab.classList.remove('active');
-        cameraTab.classList.remove('active');
-        historyTab.classList.remove('active');
-        scoreSection.classList.add('active');
-        timerSection.classList.remove('active');
-        cameraSection.classList.remove('active');
-        historySection.classList.remove('active');
+        activateTab(scoreTab, scoreSection);
         calculateScore();
+    });
+
+    futureTab.addEventListener('click', () => {
+        stopCameraStream();
+        activateTab(futureTab, futureSection);
+        loadEditionFrame(futureSection);
+    });
+
+    foundersTab.addEventListener('click', () => {
+        stopCameraStream();
+        activateTab(foundersTab, foundersSection);
+        loadEditionFrame(foundersSection);
     });
 
     historyTab.addEventListener('click', () => {
         stopCameraStream();
-        historyTab.classList.add('active');
-        timerTab.classList.remove('active');
-        cameraTab.classList.remove('active');
-        scoreTab.classList.remove('active');
-        historySection.classList.add('active');
-        scoreSection.classList.remove('active');
-        timerSection.classList.remove('active');
-        cameraSection.classList.remove('active');
+        activateTab(historyTab, historySection);
         updateHistoryList();
     });
 
