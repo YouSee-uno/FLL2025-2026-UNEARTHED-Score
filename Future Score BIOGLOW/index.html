@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2e7d32">
+<title>BIOGLOW Future Edition ― The Game 得点計算</title>
+<style>
+:root {
+  --green:  #6fae2b;
+  --deep:   #2e7d32;
+  --red:    #d12e1d;
+  --ink:    #231815;
+  --bg:     #f4f8ef;
+  --line:   #d9e6c8;
+  --sub:    #5f5e5e;
+  --green-bg:  #eef7e2;
+  --red-bg:    #fdeceb;
+  --yellow-bg: #fff7e0;
+  --font: "BIZ UDPGothic", "Hiragino Sans", "Noto Sans CJK JP", sans-serif;
+  --foot-h: 70px;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; min-width: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font); font-size: 16px; line-height: 1.55;
+  font-feature-settings: "palt" 1;
+  overflow-x: hidden; word-break: break-word; overflow-wrap: anywhere;
+  padding-bottom: calc(var(--foot-h) + env(safe-area-inset-bottom, 0px) + 10px);
+}
+
+/* ===== タイトル ===== */
+.head {
+  position: sticky; top: 0; z-index: 30;
+  background: var(--deep); color: #fff;
+  padding: calc(9px + env(safe-area-inset-top, 0px)) 12px 9px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.head .ttl { font-size: 15px; font-weight: 700; line-height: 1.3; }
+.head .ttl small { display: block; font-weight: 400; opacity: .85; font-size: 11px; }
+
+main { max-width: 760px; margin: 0 auto; padding: 10px 8px 0; }
+
+/* ===== カード ===== */
+.card { background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 9px; overflow: hidden; }
+.card.sys { background: #fbfdf8; }
+.card.pen { border-color: #f0c9c4; }
+
+.ch { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-bottom: 1px solid var(--line); background: var(--green-bg); }
+.card.sys .ch { background: #f2f5ee; }
+.card.pen .ch { background: var(--red-bg); }
+.thumb {
+  flex: none; width: 54px; height: 54px; border-radius: 8px; overflow: hidden;
+  background: #fff; border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .ph { font-size: 9.5px; color: #a9b8a0; text-align: center; line-height: 1.25; font-weight: 700; }
+.hd { flex: 1 1 auto; }
+.hd .no {
+  display: inline-block; background: var(--deep); color: #fff; font-weight: 700;
+  font-size: 11.5px; padding: 1px 8px; border-radius: 5px; letter-spacing: .04em;
+}
+.card.sys .hd .no { background: var(--sub); }
+.card.pen .hd .no { background: var(--red); }
+.hd .nm { font-weight: 700; font-size: 14.5px; line-height: 1.3; margin-top: 2px; }
+.hd .nm em { font-style: normal; font-weight: 400; font-size: 11px; color: var(--sub); display: block; }
+.sub-pt { flex: none; font-weight: 700; font-size: 19px; color: var(--deep); text-align: right; font-variant-numeric: tabular-nums; }
+.sub-pt.zero { color: #b9c6b0; }
+.sub-pt.minus { color: var(--red); }
+.sub-pt em { font-style: normal; font-size: 10.5px; font-weight: 400; color: var(--sub); }
+
+.body { padding: 2px 10px 9px; }
+
+/* ===== 条件の行 ===== */
+.q { padding: 9px 2px 10px; border-bottom: 1px dashed #e6efdc; }
+.q:last-of-type { border-bottom: 0; }
+.q.off { opacity: .34; pointer-events: none; }
+.q .lb { font-size: 14px; line-height: 1.5; margin-bottom: 7px; }
+.q .lb .bns { display: inline-block; background: #e3f0cf; color: #4d6f0f; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 5px; vertical-align: 1.5px; }
+.q .lb .per { color: var(--sub); font-size: 11.5px; }
+
+.opts { display: flex; gap: 5px; flex-wrap: wrap; }
+.opts button {
+  flex: 1 1 0; min-height: 50px; border-radius: 10px;
+  border: 1.5px solid var(--line); background: #fff;
+  font-family: inherit; font-size: 15px; font-weight: 700; color: var(--ink);
+  cursor: pointer; line-height: 1.15; padding: 4px 2px;
+}
+.opts button small { display: block; font-weight: 400; font-size: 10px; color: var(--sub); }
+.opts button[aria-pressed="true"] { background: var(--deep); border-color: var(--deep); color: #fff; }
+.opts button[aria-pressed="true"] small { color: rgba(255,255,255,.9); }
+.opts button.no[aria-pressed="true"] { background: #8b93a0; border-color: #8b93a0; }
+.opts button.pen[aria-pressed="true"] { background: var(--red); border-color: var(--red); }
+.opts.grid button { flex: 0 1 calc(12.5% - 5px); min-width: 38px; font-size: 14px; }
+.opts.txt button { flex: 1 1 30%; font-size: 12px; letter-spacing: -.02em; }
+.opts button { overflow-wrap: normal; word-break: keep-all; }
+
+/* ===== 大きい数のボタン（±） ===== */
+.big { display: flex; align-items: center; gap: 5px; }
+.big button {
+  flex: 1 1 0; min-height: 52px; border-radius: 10px;
+  border: 1.5px solid var(--line); background: #fff;
+  font-family: inherit; font-size: 15px; font-weight: 700; color: var(--deep);
+  cursor: pointer; line-height: 1.15;
+}
+.big button:disabled { color: #cfd8c8; }
+.big .val {
+  flex: 1.3 1 0; text-align: center; font-size: 26px; font-weight: 700;
+  font-variant-numeric: tabular-nums; line-height: 1.05;
+}
+.big .val small { display: block; font-size: 10.5px; font-weight: 400; color: var(--sub); }
+
+.note { font-size: 11.5px; color: var(--sub); background: var(--bg); border-radius: 7px; padding: 7px 9px; margin: 7px 0 0; line-height: 1.55; }
+.note b { color: var(--ink); }
+.note.warn { background: var(--red-bg); color: #8a2b20; }
+.note.warn b { color: var(--red); }
+
+/* ===== 合計 ===== */
+.foot {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  background: var(--ink); color: #fff;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 -2px 10px rgba(0,0,0,.25);
+}
+.foot .tot { flex: 1 1 auto; line-height: 1.05; }
+.foot .tot b { font-size: 30px; font-variant-numeric: tabular-nums; }
+.foot .tot b::after { content: " 点"; font-size: 13px; font-weight: 400; }
+.foot .tot span { display: block; font-size: 10px; opacity: .78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.foot.zeroed { background: #7a1c13; }
+.foot button {
+  flex: none; min-height: 44px; padding: 0 12px; border-radius: 9px;
+  border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff;
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.foot button.pri { background: var(--green); border-color: var(--green); color: var(--ink); }
+
+@media (min-width: 700px) {
+  body { font-size: 17px; }
+  main { padding: 12px 12px 0; }
+  .thumb { width: 66px; height: 66px; }
+  .hd .nm { font-size: 16px; }
+  .q .lb { font-size: 15px; }
+  .sub-pt { font-size: 21px; }
+  .opts button { min-height: 54px; font-size: 16px; }
+  .opts.grid button { flex: 0 1 calc(8.333% - 5px); }
+}
+</style>
+</head>
+<body>
+
+<header class="head">
+  <div class="ttl">BIOGLOW Future Edition<small>The Game 得点計算（公式スコアシート準拠）</small></div>
+</header>
+
+<main><div id="list"></div></main>
+
+<footer class="foot" id="foot">
+  <div class="tot"><b id="total">0</b><span id="breakdown"></span></div>
+  <button id="copy">コピー</button>
+  <button id="reset" class="pri">リセット</button>
+</footer>
+
+<script>
+/* =========================================================
+   公式スコアシート（fll-future-3-8-bioglow-scoresheet.pdf）準拠
+   type: 'yn'（いいえ/はい）／'num'（0〜N を直接選ぶ）／
+         'big'（±1・±10 のボタンで増減）／'opt'（排他選択）
+   ========================================================= */
+var CARDS = [
+  { id:'m01', no:'01', name:'Mighty Microbiomes', jp:'たくましいマイクロバイオーム', img:'m01.jpg', rows:[
+      { id:'y', type:'num', label:'若い森（young forest）にあるキーストーン種', max:3, unit:20 },
+      { id:'g', type:'num', label:'グランドツリー（grand tree）にあるキーストーン種', max:3, unit:20 },
+      { id:'h', type:'num', label:'洞の木（hollow tree）にあるキーストーン種', max:3, unit:20 },
+      { id:'b', type:'yn', label:'若い森のマイクロバイオームにキーストーン種が 3 個以上あり、かつフィールドの反対側の外来種の女王が倒されている', pt:40, bonus:true, requires:'y3' }
+    ],
+    note:'各マイクロバイオームの得点は<b>最大 3 個</b>まで。<b>若い森の 4 個目は置いても得点にならず、反対側の外来種の女王を倒すトリガー</b>になります（＝ボーナスの条件）。キーストーン種は<b>装置に触れず、ばらけた状態</b>で入っていないと得点になりません。ボーナスは<b>若い森が 3 個</b>のときだけ選べます。'
+  },
+
+  { id:'m02', no:'02', name:'Roots of Renewal', jp:'よみがえりの根', img:'m02.jpg', rows:[
+      { id:'a', type:'big', label:'グランドツリーの基部にある資源', max:20, unit:5 },
+      { id:'b', type:'num', label:'林冠のチャンバーにある資源', max:15, unit:10 }
+    ],
+    note:'<b>林冠のチャンバーは最大 15 個</b>（原本の上限表記）。基部側は上限の記載がないため、<b>自分側フィールドの資源トークン 20 個</b>を上限にしています。<b>資源は木を通して上へ循環させること。林冠に直接置いても得点になりません。</b>'
+  },
+
+  { id:'m03', no:'03', name:'Cave Waterfall', jp:'どうくつの滝', img:'m03.jpg', rows:[
+      { id:'n', type:'big', label:'滝を通して循環させたキーストーン種', max:50, unit:5 }
+    ],
+    note:'<b>試合終了時にカウンターに表示されている数</b>で決まります（滝を通した分だけが進み、他の方法でカウンターを進めてはいけません）。カウンターの目盛りは 0・8・16・24・32・40・48・56 ですが、<b>得点になるのは 50 個まで</b>です。'
+  },
+
+  { id:'m04', no:'04', name:'Rainforest Awakening', jp:'森の目ざめ', img:'m04.jpg', rows:[
+      { id:'a', type:'yn', label:'巣（nest）からすべてのキーストーン種が解放されている', pt:30 },
+      { id:'b', type:'yn', label:'洞の木からすべての資源が解放されている', pt:20 }
+    ]},
+
+  { id:'m05', no:'05', name:'Central Haven', jp:'中央保護区', img:'m05.jpg', rows:[
+      { id:'n', type:'big', label:'中央保護区に完全に収まっているキーストーン種または資源', max:40, unit:5 }
+    ],
+    note:'原本に上限の記載はありません。入力の都合で 40 個までにしています。'
+  },
+
+  { id:'lv', no:'LEVEL UP', name:'Invasive Attack', jp:'外来種の来襲（レベルアップ）', lv:true, ph:'LEVEL<br>UP', img:'mlv.jpg', rows:[
+      { id:'a', type:'num', label:'追加した外来種', max:5, unit:20 },
+      { id:'b', type:'num', label:'封じ込め区域（containment zone）にある外来種', max:5, unit:10 }
+    ],
+    note:'自分から難しさを上げる任意のミッション。<b>やらない場合は両方 0 のままで構いません。</b>'
+  },
+
+  { id:'pen', no:'ペナルティ', name:'Penalties', jp:'受けたペナルティの数', sys:true, pen:true, ph:'PEN', rows:[
+      { id:'n', type:'opt', cls:'pen', label:'受けたペナルティの数', opts:[
+          { v:0, lb:'0', sub:'±0', pt:0 },
+          { v:1, lb:'1', sub:'−10 点', pt:-10 },
+          { v:2, lb:'2', sub:'−30 点', pt:-30 },
+          { v:3, lb:'3 以上', sub:'得点 0', pt:0 }
+        ], def:0 }
+    ],
+    note:'<b>3 回以上でこの試合の得点は 0 点</b>になります。'
+  },
+
+  { id:'gp', no:'GP', name:'Gracious Professionalism', jp:'ゲームフィールドでの態度（別集計）', sys:true, gpOnly:true, ph:'GP', rows:[
+      { id:'s', type:'opt', cls:'txt', label:'レフェリーの評価', opts:[
+          { v:2, lb:'DEVELOPING', sub:'2 点', pt:0 },
+          { v:3, lb:'ACCOMPLISHED', sub:'3 点', pt:0 },
+          { v:4, lb:'EXCEEDS', sub:'4 点', pt:0 }
+        ], def:3 }
+    ],
+    note:'この点は<b>ゲームの得点には加算しません</b>（コアバリューの合計点に加算されます）。'
+  }
+];
+
+/* ===================== 状態 ===================== */
+var KEY = 'bioglow-future-score-v1';
+var d = {};
+
+function ensureDefaults() {
+  CARDS.forEach(function (c) {
+    if (!d[c.id]) { d[c.id] = {}; }
+    c.rows.forEach(function (r) {
+      if (d[c.id][r.id] === undefined) {
+        d[c.id][r.id] = (r.type === 'opt') ? r.def : (r.type === 'yn' ? false : 0);
+      }
+    });
+  });
+}
+function load() {
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) { var o = JSON.parse(raw); if (o && typeof o === 'object') { d = o; } }
+  } catch (e) {}
+  ensureDefaults();
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} }
+
+/* ===================== 得点計算 ===================== */
+function rowOk(c, r) {
+  if (!r.requires) { return true; }
+  if (r.requires === 'y3') { return (d.m01.y || 0) >= 3; }
+  var v = d[c.id][r.requires];
+  return (typeof v === 'number') ? v > 0 : !!v;
+}
+function cardScore(c) {
+  if (c.gpOnly) { return 0; }
+  var t = 0;
+  c.rows.forEach(function (r) {
+    if (!rowOk(c, r)) { return; }
+    var v = d[c.id][r.id];
+    if (r.type === 'yn') { if (v) { t += r.pt; } }
+    else if (r.type === 'num' || r.type === 'big') { t += (v || 0) * r.unit; }
+    else if (r.type === 'opt') {
+      var o = r.opts.filter(function (x) { return x.v === v; })[0];
+      if (o) { t += o.pt; }
+    }
+  });
+  return t;
+}
+function penaltyCount() { return d.pen && d.pen.n !== undefined ? d.pen.n : 0; }
+function totals() {
+  var mi = 0;
+  CARDS.forEach(function (c) { if (!c.sys) { mi += cardScore(c); } });
+  var pen = cardScore(CARDS.filter(function (c) { return c.id === 'pen'; })[0]);
+  var zeroed = penaltyCount() >= 3;
+  var all = zeroed ? 0 : Math.max(0, mi + pen);
+  return { mi: mi, pen: pen, all: all, zeroed: zeroed };
+}
+function gpPoint() { return (d.gp && d.gp.s !== undefined) ? d.gp.s : 3; }
+
+/* ===================== 描画 ===================== */
+var listEl = document.getElementById('list');
+function el(tag, cls, html) {
+  var e = document.createElement(tag);
+  if (cls) { e.className = cls; }
+  if (html !== undefined) { e.innerHTML = html; }
+  return e;
+}
+function thumbFor(c) {
+  var t = el('div', 'thumb');
+  if (!c.img) { t.appendChild(el('div', 'ph', c.ph)); return t; }
+  var img = document.createElement('img');
+  img.alt = c.jp + ' のミッションモデル';
+  img.loading = 'lazy';
+  img.src = 'images/' + c.img;
+  img.onerror = function () {
+    t.innerHTML = '';
+    t.appendChild(el('div', 'ph', c.ph || ('MISSION<br>' + c.no)));
+  };
+  t.appendChild(img);
+  return t;
+}
+function numOpts(r) {
+  var a = [];
+  for (var i = 0; i <= r.max; i++) { a.push({ v:i, lb:String(i), sub: r.unit ? (i * r.unit) + '点' : '' }); }
+  return a;
+}
+function buildList() {
+  listEl.innerHTML = '';
+  CARDS.forEach(function (c) {
+    var card = el('section', 'card' + (c.sys ? ' sys' : '') + (c.pen ? ' pen' : ''));
+
+    var ch = el('div', 'ch');
+    ch.appendChild(thumbFor(c));
+    var hd = el('div', 'hd');
+    hd.appendChild(el('div', 'no', c.sys ? c.no : (c.lv ? c.no : 'MISSION ' + c.no)));
+    hd.appendChild(el('div', 'nm', c.name + '<em>' + c.jp + '</em>'));
+    ch.appendChild(hd);
+    var sp = el('span', 'sub-pt', '0<em>点</em>');
+    sp.setAttribute('data-sub', c.id);
+    if (!c.gpOnly) { ch.appendChild(sp); }
+    card.appendChild(ch);
+
+    var body = el('div', 'body');
+    c.rows.forEach(function (r) {
+      var q = el('div', 'q');
+      q.setAttribute('data-q', c.id + '.' + r.id);
+      q.appendChild(el('div', 'lb',
+        (r.bonus ? '<span class="bns">ボーナス</span>' : '') + r.label +
+        ((r.type === 'num' || r.type === 'big') && r.unit ? '<span class="per">（1 個 ' + r.unit + ' 点）</span>' : '') +
+        (r.type === 'yn' && r.pt ? '<span class="per">（' + r.pt + ' 点）</span>' : '')));
+
+      if (r.type === 'big') {
+        var big = el('div', 'big');
+        [-10, -1].forEach(function (delta) {
+          var b = el('button', null, (delta > 0 ? '＋' : '−') + Math.abs(delta));
+          b.type = 'button';
+          b.setAttribute('data-delta', String(delta));
+          b.onclick = function () { bump(c, r, delta); };
+          big.appendChild(b);
+        });
+        var val = el('div', 'val', '0<small>0 点</small>');
+        val.setAttribute('data-val', c.id + '.' + r.id);
+        big.appendChild(val);
+        [1, 10].forEach(function (delta) {
+          var b = el('button', null, '＋' + delta);
+          b.type = 'button';
+          b.setAttribute('data-delta', String(delta));
+          b.onclick = function () { bump(c, r, delta); };
+          big.appendChild(b);
+        });
+        q.appendChild(big);
+      } else {
+        var opts = (r.type === 'yn')
+          ? [ { v:false, lb:'いいえ', cls:'no' }, { v:true, lb:'はい', sub: r.pt ? '+' + r.pt + ' 点' : '' } ]
+          : (r.type === 'num' ? numOpts(r) : r.opts);
+        var wrap = el('div', 'opts' + (r.type === 'num' && r.max > 5 ? ' grid' : '') + (r.cls ? ' ' + r.cls : ''));
+        opts.forEach(function (o) {
+          var b = el('button', (o.cls || '') + (r.cls === 'pen' ? ' pen' : ''), o.lb + (o.sub ? '<small>' + o.sub + '</small>' : ''));
+          b.type = 'button';
+          b.setAttribute('data-v', String(o.v));
+          b.onclick = function () { d[c.id][r.id] = o.v; save(); update(); };
+          wrap.appendChild(b);
+        });
+        q.appendChild(wrap);
+      }
+      body.appendChild(q);
+    });
+    if (c.note) { body.appendChild(el('div', 'note' + (c.pen ? ' warn' : ''), c.note)); }
+    card.appendChild(body);
+    listEl.appendChild(card);
+  });
+}
+function bump(c, r, delta) {
+  var n = (d[c.id][r.id] || 0) + delta;
+  if (n < 0) { n = 0; }
+  if (n > r.max) { n = r.max; }
+  d[c.id][r.id] = n;
+  save(); update();
+}
+
+/* ===================== 反映 ===================== */
+function update() {
+  CARDS.forEach(function (c) {
+    c.rows.forEach(function (r) {
+      var q = listEl.querySelector('[data-q="' + c.id + '.' + r.id + '"]');
+      if (!q) { return; }
+      var ok = rowOk(c, r);
+      q.classList.toggle('off', !ok);
+      if (r.type === 'big') {
+        var n = d[c.id][r.id] || 0;
+        var v = q.querySelector('[data-val]');
+        if (v) { v.innerHTML = n + '<small>' + (n * r.unit) + ' 点</small>'; }
+        Array.prototype.forEach.call(q.querySelectorAll('button'), function (b) {
+          var dl = Number(b.getAttribute('data-delta'));
+          b.disabled = (dl < 0 && n <= 0) || (dl > 0 && n >= r.max);
+        });
+      } else {
+        Array.prototype.forEach.call(q.querySelectorAll('button'), function (b) {
+          b.setAttribute('aria-pressed', b.getAttribute('data-v') === String(d[c.id][r.id]) ? 'true' : 'false');
+        });
+      }
+    });
+    var sp = listEl.querySelector('[data-sub="' + c.id + '"]');
+    if (sp) {
+      var s = cardScore(c);
+      sp.innerHTML = s + '<em>点</em>';
+      sp.classList.toggle('zero', s === 0);
+      sp.classList.toggle('minus', s < 0);
+    }
+  });
+
+  var t = totals();
+  document.getElementById('total').textContent = t.all;
+  document.getElementById('foot').classList.toggle('zeroed', t.zeroed);
+  document.getElementById('breakdown').textContent = t.zeroed
+    ? 'ペナルティ 3 回以上 → この試合の得点は 0 点（素点 ' + t.mi + '）'
+    : 'ミッション ' + t.mi + (t.pen ? '／ペナルティ ' + t.pen : '') + '　GP ' + gpPoint() + '（別集計）';
+}
+function render() { buildList(); update(); }
+
+/* ===================== 操作 ===================== */
+document.getElementById('reset').onclick = function () {
+  if (!confirm('入力をすべて消します。よろしいですか？')) { return; }
+  d = {}; ensureDefaults(); save(); render(); window.scrollTo(0, 0);
+};
+document.getElementById('copy').onclick = function () {
+  var t = totals(), lines = [];
+  lines.push('BIOGLOW Future 得点：' + t.all + ' 点' + (t.zeroed ? '（ペナルティ 3 回以上のため 0 点）' : ''));
+  CARDS.forEach(function (c) {
+    if (c.gpOnly) { return; }
+    lines.push('  ' + (c.sys ? '' : 'M' + c.no + ' ') + c.jp + '：' + cardScore(c) + ' 点');
+  });
+  lines.push('Gracious Professionalism：' + gpPoint() + ' 点（コアバリューに加算）');
+  var txt = lines.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(
+      function () { alert('結果をコピーしました。'); },
+      function () { window.prompt('コピーしてください', txt); });
+  } else { window.prompt('コピーしてください', txt); }
+};
+
+load();
+render();
+</script>
+</body>
+</html>

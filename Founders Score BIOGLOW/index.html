@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#003388">
+<title>BIOGLOW Founders Edition ― ロボットゲーム得点計算</title>
+<style>
+:root {
+  --green:  #86bc1f;
+  --blue:   #003388;
+  --red:    #d12e1d;
+  --ink:    #231815;
+  --bg:     #f5f7fa;
+  --line:   #dce3ec;
+  --sub:    #5f5e5e;
+  --green-bg:  #f0f7e2;
+  --red-bg:    #fdeceb;
+  --yellow-bg: #fff7e0;
+  --font: "BIZ UDPGothic", "Hiragino Sans", "Noto Sans CJK JP", sans-serif;
+  --foot-h: 70px;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; min-width: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font); font-size: 16px; line-height: 1.55;
+  font-feature-settings: "palt" 1;
+  overflow-x: hidden; word-break: break-word; overflow-wrap: anywhere;
+  padding-bottom: calc(var(--foot-h) + env(safe-area-inset-bottom, 0px) + 10px);
+}
+
+/* ===== タイトル ===== */
+.head {
+  position: sticky; top: 0; z-index: 30;
+  background: var(--blue); color: #fff;
+  padding: calc(9px + env(safe-area-inset-top, 0px)) 12px 9px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.head .ttl { font-size: 15px; font-weight: 700; line-height: 1.3; }
+.head .ttl small { display: block; font-weight: 400; opacity: .82; font-size: 11px; }
+
+main { max-width: 760px; margin: 0 auto; padding: 10px 8px 0; }
+
+/* ===== ミッションカード ===== */
+.card { background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 9px; overflow: hidden; }
+.card.sys { background: #fbfcfe; }
+
+.ch { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+.thumb {
+  flex: none; width: 54px; height: 54px; border-radius: 8px; overflow: hidden;
+  background: var(--bg); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .ph { font-size: 9.5px; color: #aab3bf; text-align: center; line-height: 1.25; font-weight: 700; }
+.hd { flex: 1 1 auto; }
+.hd .no {
+  display: inline-block; background: var(--blue); color: #fff; font-weight: 700;
+  font-size: 11.5px; padding: 1px 8px; border-radius: 5px; letter-spacing: .04em;
+}
+.card.sys .hd .no { background: var(--sub); }
+.hd .nm { font-weight: 700; font-size: 14.5px; line-height: 1.3; margin-top: 2px; }
+.hd .nm em { font-style: normal; font-weight: 400; font-size: 11px; color: var(--sub); display: block; }
+.tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+.tag { font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; border: 1px solid transparent; white-space: nowrap; }
+.tag.no-touch { background: var(--red-bg); color: var(--red); border-color: #f3c3bf; }
+.tag.touch-ok { background: var(--green-bg); color: #4d6f0f; border-color: #d3e6a8; }
+.tag.dock { background: var(--yellow-bg); color: #8a6d00; border-color: #ecd68a; }
+.sub-pt { flex: none; font-weight: 700; font-size: 19px; color: var(--blue); text-align: right; font-variant-numeric: tabular-nums; }
+.sub-pt.zero { color: #c3cad3; }
+.sub-pt em { font-style: normal; font-size: 10.5px; font-weight: 400; color: var(--sub); }
+
+.body { padding: 2px 10px 9px; }
+
+/* ===== 条件の行 ===== */
+.q { padding: 9px 2px 10px; border-bottom: 1px dashed #e8edf4; }
+.q:last-of-type { border-bottom: 0; }
+.q.off { opacity: .34; pointer-events: none; }
+.q .lb { font-size: 14px; line-height: 1.5; margin-bottom: 7px; }
+.q .lb .bns { display: inline-block; background: var(--green-bg); color: #4d6f0f; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 5px; vertical-align: 1.5px; }
+.q .lb .per { color: var(--sub); font-size: 11.5px; }
+.opts { display: flex; gap: 5px; }
+.opts button {
+  flex: 1 1 0; min-height: 50px; border-radius: 10px;
+  border: 1.5px solid var(--line); background: #fff;
+  font-family: inherit; font-size: 15px; font-weight: 700; color: var(--ink);
+  cursor: pointer; line-height: 1.15; padding: 4px 2px;
+}
+.opts button small { display: block; font-weight: 400; font-size: 10px; color: var(--sub); }
+.opts button[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+.opts button[aria-pressed="true"] small { color: rgba(255,255,255,.9); }
+.opts button.no[aria-pressed="true"] { background: #8b93a0; border-color: #8b93a0; }
+.opts.txt button { font-size: 13px; }
+.opts.txt button small { font-size: 10px; }
+
+.note { font-size: 11.5px; color: var(--sub); background: var(--bg); border-radius: 7px; padding: 7px 9px; margin: 7px 0 0; line-height: 1.55; }
+.note b { color: var(--ink); }
+
+/* ===== 合計 ===== */
+.foot {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  background: var(--ink); color: #fff;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 -2px 10px rgba(0,0,0,.25);
+}
+.foot .tot { flex: 1 1 auto; line-height: 1.05; }
+.foot .tot b { font-size: 30px; font-variant-numeric: tabular-nums; }
+.foot .tot b::after { content: " 点"; font-size: 13px; font-weight: 400; }
+.foot .tot span { display: block; font-size: 10px; opacity: .78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.foot button {
+  flex: none; min-height: 44px; padding: 0 12px; border-radius: 9px;
+  border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff;
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.foot button.pri { background: var(--green); border-color: var(--green); color: var(--ink); }
+
+@media (min-width: 700px) {
+  body { font-size: 17px; }
+  main { padding: 12px 12px 0; }
+  .thumb { width: 66px; height: 66px; }
+  .hd .nm { font-size: 16px; }
+  .q .lb { font-size: 15px; }
+  .sub-pt { font-size: 21px; }
+  .opts button { min-height: 54px; font-size: 16px; }
+}
+</style>
+</head>
+<body>
+
+<header class="head">
+  <div class="ttl">BIOGLOW Founders Edition<small>ロボットゲーム得点計算（公式スコアシート準拠）</small></div>
+</header>
+
+<main>
+  <div id="list"></div>
+</main>
+
+<footer class="foot">
+  <div class="tot"><b id="total">0</b><span id="breakdown"></span></div>
+  <button id="copy">コピー</button>
+  <button id="reset" class="pri">リセット</button>
+</footer>
+
+<script>
+/* =========================================================
+   公式スコアシート（BIOGLOW Founders Edition - Robot Game Scoresheet）
+   の行構成に合わせた定義。点数は Foundersロボットゲームルール.md による。
+   type: 'yn'（いいえ/はい）／'num'（個数）／'opt'（選択肢）
+   ========================================================= */
+var CARDS = [
+  { id:'pre', no:'―', name:'Prematch', jp:'試合前の装備検査', sys:true, ph:'装備', rows:[
+      { id:'a', type:'yn', label:'ロボットとすべての装備が 1 つの発進エリアに完全に収まり、高さ制限（12 インチ／305 mm）以下', pt:20 }
+    ]},
+
+  { id:'m01', no:'01', name:'Drone Survey', jp:'ドローン調査', noEq:true, rows:[
+      { id:'a', type:'yn', label:'ドローンがマットに触れていない', pt:20 },
+      { id:'b', type:'yn', label:'LiDAR マップが完全に裏返っており、スキャンマーカーが少なくとも一部が調査区域内にある', pt:10, bonus:true, requires:'a' }
+    ]},
+
+  { id:'m02', no:'02', name:'Exploding Seeds', jp:'弾ける種', rows:[
+      { id:'n', type:'num', label:'茎に触れていない種の数', max:3, unit:10 }
+    ]},
+
+  { id:'m03', no:'03', name:'Flip the Rock', jp:'岩をめくる', rows:[
+      { id:'a', type:'yn', label:'調査フラッグが倒れている', pt:20 },
+      { id:'b', type:'yn', label:'岩が元の開始位置に戻されている', pt:10, bonus:true, requires:'a' }
+    ]},
+
+  { id:'m04', no:'04', name:'Lucky Leaves', jp:'幸運の葉', noEq:true, rows:[
+      { id:'n', type:'num', label:'巣に触れていない葉の数', max:2, unit:0 },
+      { id:'k', type:'yn', label:'キリギリスが完全に葉の生息地の中にいる', pt:0 },
+      { id:'b', type:'yn', label:'キリギリスが試合を通して元の位置のままだった', pt:0, bonus:true }
+    ],
+    calc:'m04',
+    note:'<b>採点：</b>葉が 1 枚以上で 10 点。さらに<b>葉 2 枚＋キリギリスが元の位置のまま</b>ならボーナス +20 点（最大 30 点）。<b>「キリギリスが完全に葉の生息地の中にいる」が「いいえ」だと、このミッションは 0 点。</b><br>※ 公式スコアシートは葉の枚数を 0/1/2 で聞く形式ですが、点数はルールブックの「基本 10 点＋ボーナス 20 点」に従っています。'
+  },
+
+  { id:'m05', no:'05', name:'Reaching Roots', jp:'伸びる根', noEq:true, rows:[
+      { id:'s', type:'opt', label:'植物の根が伸びている', opts:[
+          { v:0, lb:'いいえ', sub:'0 点', pt:0 },
+          { v:1, lb:'部分的', sub:'10 点', pt:10 },
+          { v:2, lb:'完全に', sub:'20 点', pt:20 }
+        ], def:0 }
+    ]},
+
+  { id:'m06', no:'06', name:'Leafcutter Frenzy', jp:'ハキリアリの大騒ぎ', rows:[
+      { id:'g', type:'yn', label:'アリが巣に触れている', pt:0 },
+      { id:'n', type:'num', label:'巣の中に収まっている葉の断片の数', max:4, unit:10, requires:'g' }
+    ]},
+
+  { id:'m07', no:'07', name:'Humongous Fungus', jp:'巨大菌類', noEq:true, rows:[
+      { id:'a', type:'yn', label:'菌糸体が完全に伸びている', pt:20 },
+      { id:'n', type:'num', label:'一方のチームの伸びた菌糸体と、相手チームの完全に伸びた植物の根の間に形成されたつながりの数', max:2, unit:10, bonus:true, requires:'a' }
+    ],
+    note:'<b>リモート大会や相手チームがいない場合、ボーナスは獲得できません。</b>'
+  },
+
+  { id:'m08', no:'08', name:'Tangled', jp:'からみつき', rows:[
+      { id:'a', type:'yn', label:'つるがマットに触れている', pt:30 }
+    ]},
+
+  { id:'m09', no:'09', name:'Research Platform', jp:'調査プラットフォーム', noEq:true, rows:[
+      { id:'a', type:'yn', label:'調査プラットフォームが上がっている', pt:10 },
+      { id:'b', type:'yn', label:'カメラトラップが配備されている', pt:10 },
+      { id:'c', type:'yn', label:'種が樹に触れていない', pt:10 }
+    ]},
+
+  { id:'m10', no:'10', name:'Fragile Microhabitats', jp:'壊れやすいミクロ生息地', noEq:true, rows:[
+      { id:'a', type:'yn', label:'クモの生息地が元の開始位置にある', pt:10 },
+      { id:'b', type:'yn', label:'カタツムリの生息地が元の開始位置にある', pt:10 }
+    ]},
+
+  { id:'m11', no:'11', name:'Window to the Past', jp:'過去への窓', rows:[
+      { id:'a', type:'yn', label:'根のカバーが下がっており、マットに触れている', pt:20 }
+    ]},
+
+  { id:'m12', no:'12', name:'Forest Elder', jp:'森の長老', noEq:true, rows:[
+      { id:'a', type:'yn', label:'杖が完全に上がっており、樹に触れている', pt:20 },
+      { id:'b', type:'yn', label:'支持タイが支柱の周りにある', pt:10 }
+    ]},
+
+  { id:'m13', no:'13', name:'Keystone Species', jp:'キーストーン種', dock:true, rows:[
+      { id:'a', type:'yn', label:'チームのキーストーン種が復元プラットフォーム上にあり、かつ若木が上がっている', pt:30 }
+    ]},
+
+  { id:'m14', no:'14', name:'Seeds of Renewal', jp:'再生の種', dock:true, rows:[
+      { id:'n', type:'num', label:'再植林ステーションの中に収まっている種の数', max:4, unit:5 },
+      { id:'b', type:'num', label:'そのうち、マットに触れている種の数', max:4, unit:5, bonus:true, cappedBy:'n' }
+    ]},
+
+  { id:'m15', no:'15', name:'Biocentric Architecture', jp:'生物中心の建築', noEq:true, dock:true, rows:[
+      { id:'a', type:'yn', label:'巣作りキャノピーが上がっている', pt:10 },
+      { id:'b', type:'yn', label:'庭のスカイライトが完全に入っている', pt:10 },
+      { id:'c', type:'yn', label:'堆肥ハッチが完全に開いており、マットに触れている', pt:10 },
+      { id:'d', type:'opt', label:'ドックの場所', opts:[
+          { v:'mine', lb:'鉱山', sub:'巣作りキャノピー', pt:0 },
+          { v:'city', lb:'都市', sub:'庭のスカイライト', pt:0 },
+          { v:'farm', lb:'農場', sub:'堆肥ハッチ', pt:0 }
+        ], def:'mine' }
+    ],
+    envBonus:true,
+    note:'<b>環境ボーナス +10</b>：置いたドックにとって「もっとも大きな生態的ニーズ」を達成した場合（鉱山＝巣作りキャノピー／都市＝庭のスカイライト／農場＝堆肥ハッチ）。<b>ボーナスは 1 つだけ成立します。</b>'
+  },
+
+  { id:'tok', no:'―', name:'Precision Tokens', jp:'精密トークン', sys:true, ph:'ﾄｰｸﾝ', rows:[
+      { id:'n', type:'opt', label:'残っている精密トークンの数', opts:[
+          { v:0, lb:'0', sub:'0 点', pt:0 },
+          { v:1, lb:'1', sub:'10 点', pt:10 },
+          { v:2, lb:'2', sub:'15 点', pt:15 },
+          { v:3, lb:'3', sub:'25 点', pt:25 },
+          { v:4, lb:'4', sub:'35 点', pt:35 },
+          { v:5, lb:'5', sub:'50 点', pt:50 },
+          { v:6, lb:'6', sub:'50 点', pt:50 }
+        ], def:6 }
+    ],
+    note:'6 個で試合開始。ホームの外での介入 1 回につき 1 個減ります。<b>6 個でも 5 個でも 50 点。</b>'
+  }
+];
+
+/* ===================== 状態 ===================== */
+var KEY = 'bioglow-founders-score-v3';
+var d = {};
+
+function ensureDefaults() {
+  CARDS.forEach(function (c) {
+    if (!d[c.id]) { d[c.id] = {}; }
+    c.rows.forEach(function (r) {
+      if (d[c.id][r.id] === undefined) {
+        d[c.id][r.id] = (r.type === 'opt') ? r.def : (r.type === 'num' ? 0 : false);
+      }
+    });
+  });
+}
+function load() {
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) { var o = JSON.parse(raw); if (o && typeof o === 'object') { d = o; } }
+  } catch (e) {}
+  ensureDefaults();
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} }
+
+/* ===================== 得点計算 ===================== */
+function rowOk(c, r) {
+  if (!r.requires) { return true; }
+  var v = d[c.id][r.requires];
+  return (typeof v === 'number') ? v > 0 : !!v;
+}
+function cardScore(c) {
+  if (c.calc === 'm04') {
+    if (!d.m04.k) { return 0; }               // キリギリスが生息地の外 → 0 点
+    var leaves = d.m04.n || 0;
+    var s = leaves >= 1 ? 10 : 0;             // 基本：葉 1 枚以上で 10 点
+    if (leaves >= 2 && d.m04.b) { s += 20; }  // ボーナス：葉 2 枚＋キリギリスが元の位置
+    return s;
+  }
+  var t = 0;
+  c.rows.forEach(function (r) {
+    if (!rowOk(c, r)) { return; }
+    var v = d[c.id][r.id];
+    if (r.type === 'yn') { if (v) { t += r.pt; } }
+    else if (r.type === 'num') {
+      var n = v || 0;
+      if (r.cappedBy) { n = Math.min(n, d[c.id][r.cappedBy] || 0); }
+      t += n * r.unit;
+    } else if (r.type === 'opt') {
+      var o = r.opts.filter(function (x) { return x.v === v; })[0];
+      if (o) { t += o.pt; }
+    }
+  });
+  if (c.envBonus) {
+    var dk = d[c.id].d;
+    if ((dk === 'mine' && d[c.id].a) || (dk === 'city' && d[c.id].b) || (dk === 'farm' && d[c.id].c)) { t += 10; }
+  }
+  return t;
+}
+function totals() {
+  var pre = cardScore(CARDS[0]);
+  var tok = cardScore(CARDS[CARDS.length - 1]);
+  var mi = 0;
+  CARDS.forEach(function (c) { if (!c.sys) { mi += cardScore(c); } });
+  return { pre: pre, tok: tok, mi: mi, all: pre + tok + mi };
+}
+
+/* ===================== 描画 ===================== */
+var listEl = document.getElementById('list');
+function el(tag, cls, html) {
+  var e = document.createElement(tag);
+  if (cls) { e.className = cls; }
+  if (html !== undefined) { e.innerHTML = html; }
+  return e;
+}
+function thumbFor(c) {
+  var t = el('div', 'thumb');
+  if (c.sys) { t.appendChild(el('div', 'ph', c.ph)); return t; }
+  var img = document.createElement('img');
+  img.alt = 'ミッション ' + c.no + ' ' + c.jp;
+  img.src = 'images/m' + c.no + '.jpg';
+  img.onerror = function () { t.innerHTML = ''; t.appendChild(el('div', 'ph', 'MISSION<br>' + c.no)); };
+  t.appendChild(img);
+  return t;
+}
+function optsFor(r) {
+  if (r.type === 'yn') { return [ { v:false, lb:'いいえ', cls:'no' }, { v:true, lb:'はい', sub: r.pt ? '+' + r.pt + ' 点' : '' } ]; }
+  if (r.type === 'num') {
+    var a = [];
+    for (var i = 0; i <= r.max; i++) { a.push({ v:i, lb:String(i), sub: r.unit ? (i * r.unit) + ' 点' : '' }); }
+    return a;
+  }
+  return r.opts;
+}
+function buildList() {
+  listEl.innerHTML = '';
+  CARDS.forEach(function (c) {
+    var card = el('section', 'card' + (c.sys ? ' sys' : ''));
+
+    var ch = el('div', 'ch');
+    ch.appendChild(thumbFor(c));
+    var hd = el('div', 'hd');
+    hd.appendChild(el('div', 'no', c.sys ? c.jp : 'MISSION ' + c.no));
+    hd.appendChild(el('div', 'nm', c.name + '<em>' + (c.sys ? '' : c.jp) + '</em>'));
+    if (!c.sys) {
+      var tags = el('div', 'tags');
+      tags.appendChild(el('span', 'tag ' + (c.noEq ? 'no-touch' : 'touch-ok'), c.noEq ? '非接触' : '接触OK'));
+      if (c.dock) { tags.appendChild(el('span', 'tag dock', '交換式ドック')); }
+      hd.appendChild(tags);
+    }
+    ch.appendChild(hd);
+    var sp = el('span', 'sub-pt', '0<em>点</em>');
+    sp.setAttribute('data-sub', c.id);
+    ch.appendChild(sp);
+    card.appendChild(ch);
+
+    var body = el('div', 'body');
+    c.rows.forEach(function (r) {
+      var q = el('div', 'q');
+      q.setAttribute('data-q', c.id + '.' + r.id);
+      q.appendChild(el('div', 'lb',
+        (r.bonus ? '<span class="bns">ボーナス</span>' : '') + r.label +
+        (r.type === 'num' && r.unit ? '<span class="per">（1 個 ' + r.unit + ' 点）</span>' : '')));
+      var wrap = el('div', 'opts' + (r.type === 'opt' ? ' txt' : ''));
+      optsFor(r).forEach(function (o) {
+        var b = el('button', o.cls || null, o.lb + (o.sub ? '<small>' + o.sub + '</small>' : ''));
+        b.type = 'button';
+        b.setAttribute('data-v', String(o.v));
+        b.onclick = function () {
+          var v = o.v;
+          if (r.cappedBy && typeof v === 'number') { v = Math.min(v, d[c.id][r.cappedBy] || 0); }
+          d[c.id][r.id] = v;
+          save(); update();
+        };
+        wrap.appendChild(b);
+      });
+      q.appendChild(wrap);
+      body.appendChild(q);
+    });
+    if (c.note) { body.appendChild(el('div', 'note', c.note)); }
+    card.appendChild(body);
+    listEl.appendChild(card);
+  });
+}
+
+/* ===================== 反映 ===================== */
+function update() {
+  CARDS.forEach(function (c) {
+    c.rows.forEach(function (r) {
+      var q = listEl.querySelector('[data-q="' + c.id + '.' + r.id + '"]');
+      if (!q) { return; }
+      var ok = rowOk(c, r);
+      q.classList.toggle('off', !ok);
+      var capped = r.cappedBy ? (d[c.id][r.cappedBy] || 0) : null;
+      Array.prototype.forEach.call(q.querySelectorAll('button'), function (b) {
+        var bv = b.getAttribute('data-v');
+        b.setAttribute('aria-pressed', bv === String(d[c.id][r.id]) ? 'true' : 'false');
+        if (capped !== null) { b.disabled = (Number(bv) > capped); b.style.opacity = b.disabled ? '.35' : ''; }
+      });
+    });
+    var sp = listEl.querySelector('[data-sub="' + c.id + '"]');
+    if (sp) {
+      var s = cardScore(c);
+      sp.innerHTML = s + '<em>点</em>';
+      sp.classList.toggle('zero', s === 0);
+    }
+  });
+  var t = totals();
+  document.getElementById('total').textContent = t.all;
+  document.getElementById('breakdown').textContent =
+    'ミッション ' + t.mi + '／装備検査 ' + t.pre + '／トークン ' + t.tok + '　（満点 530）';
+}
+function render() { buildList(); update(); }
+
+/* ===================== 操作 ===================== */
+document.getElementById('reset').onclick = function () {
+  if (!confirm('入力をすべて消します。よろしいですか？')) { return; }
+  d = {}; ensureDefaults(); save(); render(); window.scrollTo(0, 0);
+};
+document.getElementById('copy').onclick = function () {
+  var t = totals(), lines = [];
+  lines.push('BIOGLOW Founders 得点：' + t.all + ' 点');
+  lines.push('装備検査 ' + t.pre + ' ／ 精密トークン ' + t.tok + ' ／ ミッション ' + t.mi);
+  CARDS.forEach(function (c) {
+    if (c.sys) { return; }
+    lines.push('  M' + c.no + ' ' + c.jp + '：' + cardScore(c) + ' 点');
+  });
+  var txt = lines.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(
+      function () { alert('結果をコピーしました。'); },
+      function () { window.prompt('コピーしてください', txt); });
+  } else { window.prompt('コピーしてください', txt); }
+};
+
+load();
+render();
+</script>
+</body>
+</html>
